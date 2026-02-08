@@ -38,14 +38,14 @@ npm i
 cd api
 
 # Create a virtual environment
-python3 -m venv venv
+python3 -m venv .venv
 
 # Activate the environment
 # On macOS/Linux:
-source venv/bin/activate
+. .venv/bin/activate
 
 # On Windows:
-# venv\Scripts\activate
+# .venv\Scripts\activate
 
 # Install Python requirements
 pip install -r requirements.txt
