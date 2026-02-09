@@ -63,3 +63,28 @@ npm run dev
 The application will be available at:
 Frontend: <http://localhost:3000>
 Backend API: <http://localhost:5328/api>
+
+### 5. Make a branch to work on your own feature or fix
+
+Use the following format: your-username/feature-name
+Example: gmatt20/neural-trace
+
+```bash
+# Create and switch to a new branch
+git checkout -b your-username/feature-name
+
+# Example
+git checkout -b gmatt20/neural-trace
+```
+
+### 6. Pushing & Pulling
+
+Push your changes:
+
+```bash
+git add .
+git commit -m "feat: implement socratic decay logic"
+git push origin your-username/feature-name
+```
+
+Then create your PR in GitHub
