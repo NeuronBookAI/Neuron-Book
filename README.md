@@ -66,8 +66,10 @@ Backend API: <http://localhost:5328/api>
 
 ### 5. Make a branch to work on your own feature or fix
 
-Use the following format: your-username/feature-name
-Example: gmatt20/neural-trace
+Use the following format:
+
+- your-username/feature-name
+- Example: gmatt20/neural-trace
 
 ```bash
 # Create and switch to a new branch
