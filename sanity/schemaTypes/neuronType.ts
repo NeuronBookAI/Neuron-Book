@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { masteryType } from "./masteryType";
 
 export const neuronType = defineType({
   name: "neuron",
@@ -25,12 +26,10 @@ export const neuronType = defineType({
       of: [{ type: "block" }],
     }),
     defineField({
-      name: "masteryLevel",
-      title: "Mastery Level (Strength)",
-      description: "The current strength or proficiency of this neuron node.",
-      type: "number",
-      initialValue: 0,
-      validation: (rule) => rule.min(0).max(100).precision(2),
+      name: "mastery",
+      title: "Mastery",
+      type: "reference",
+      to: [{ type: "mastery" }],
     }),
   ],
 });

@@ -11,7 +11,6 @@ export const socraticType = defineType({
       type: "string",
       validation: (rule) => rule.required(),
     }),
-
     defineField({
       name: "neuron",
       title: "Related Neurons",
