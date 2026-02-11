@@ -6,6 +6,14 @@ export const socraticType = defineType({
   type: "document",
   fields: [
     defineField({
+      name: "user",
+      title: "Owner",
+      type: "reference",
+      to: [{ type: "user" }],
+      validation: (Rule) => Rule.required(),
+    }),
+
+    defineField({
       name: "title",
       title: "Title",
       type: "string",

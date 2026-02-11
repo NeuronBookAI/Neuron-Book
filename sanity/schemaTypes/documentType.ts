@@ -25,5 +25,12 @@ export const documentType = defineType({
       type: "array",
       of: [{ type: "reference", to: [{ type: "neuron" }] }],
     }),
+    defineField({
+      name: "user",
+      title: "Owner",
+      type: "reference",
+      to: [{ type: "user" }],
+      validation: (Rule) => Rule.required(),
+    }),
   ],
 });

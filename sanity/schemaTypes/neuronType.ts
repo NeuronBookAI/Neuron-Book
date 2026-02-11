@@ -1,5 +1,4 @@
 import { defineField, defineType } from "sanity";
-import { masteryType } from "./masteryType";
 
 export const neuronType = defineType({
   name: "neuron",
@@ -30,6 +29,13 @@ export const neuronType = defineType({
       title: "Mastery",
       type: "reference",
       to: [{ type: "mastery" }],
+    }),
+    defineField({
+      name: "user",
+      title: "Owner",
+      type: "reference",
+      to: [{ type: "user" }],
+      validation: (Rule) => Rule.required(),
     }),
   ],
 });

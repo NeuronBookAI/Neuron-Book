@@ -11,7 +11,13 @@ export const masteryType = defineType({
       type: "string",
       validation: (rule) => rule.required(),
     }),
-
+    defineField({
+      name: "user",
+      title: "Owner",
+      type: "reference",
+      to: [{ type: "user" }],
+      validation: (Rule) => Rule.required(),
+    }),
     defineField({
       name: "srs",
       title: "Spaced Repetition Data",
