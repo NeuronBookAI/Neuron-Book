@@ -124,3 +124,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom glass panel utilities for NeuronBook dashboard */
+.glass-panel {
+  @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-xl;
+}
+
+.dark .glass-panel {
+  @apply bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl;
+}
+
+/* Neural node colors */
+.neural-node-teal {
+  @apply fill-teal-400/80 stroke-teal-300;
+}
+
+.neural-node-purple {
+  @apply fill-purple-400/80 stroke-purple-300;
+}
+
+.neural-node-grey {
+  @apply fill-gray-400/60 stroke-gray-300;
+}
+
+/* Custom animations for neural trace */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.neural-pulse {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Glass morphism background */
+.glass-bg {
+  background: linear-gradient(135deg, 
+    rgba(15, 23, 42, 0.9) 0%, 
+    rgba(30, 41, 59, 0.8) 50%, 
+    rgba(15, 23, 42, 0.9) 100%);
+}
