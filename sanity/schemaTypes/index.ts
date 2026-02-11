@@ -3,6 +3,7 @@ import { documentType } from "./documentType";
 import { socraticType } from "./socraticType";
 import { masteryType } from "./masteryType";
 import { userType } from "./userType";
+import { folderType } from "./folderType";
 
 export const schemaTypes = [
   neuronType,
@@ -10,4 +11,5 @@ export const schemaTypes = [
   socraticType,
   masteryType,
   userType,
+  folderType,
 ];

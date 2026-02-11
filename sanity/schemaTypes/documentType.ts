@@ -19,6 +19,13 @@ export const documentType = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: "folder",
+      title: "Folder",
+      type: "array",
+      of: [{ type: "reference", to: [{ type: "folder" }] }],
+      description: "Which category does this textbook belong to?",
+    }),
+    defineField({
       name: "neurons",
       title: "Neurons",
       description: "Individual concepts mapped from this textbook.",
