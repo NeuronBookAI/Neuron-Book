@@ -11,6 +11,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sanity/embeddings-index-cli": "^1.0.12",
+    "@sanity/embeddings-index-ui": "^3.0.1",
     "@sanity/image-url": "^1.2.0",
     "@sanity/vision": "^4.22.0",
     "class-variance-authority": "^0.7.1",

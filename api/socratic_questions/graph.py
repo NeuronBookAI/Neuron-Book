@@ -2,6 +2,7 @@ from langgraph.graph import StateGraph, END
 from .schema import QuestionState
 from .nodes import fetch_page_node, generate_question_node, commit_to_sanity_node
 
+#keeps track of the states: fetch, generate, save
 builder = StateGraph(QuestionState)
 
 builder.add_node("fetch_page", fetch_page_node)
