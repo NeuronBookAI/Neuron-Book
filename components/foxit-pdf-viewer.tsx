@@ -3,6 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const PDF_ID = "neuron-book-sample-pdf";
+const FOXIT_EMBED_DIV_ID = "foxit-embed-view";
+
+declare global {
+  interface Window {
+    FoxitEmbed?: {
+      View: new (opts: { clientId: string; divId: string }) => FoxitEmbedView;
+    };
+  }
+}
+
+interface FoxitEmbedView {
+  previewFile: (
+    file: { content: string; metaData?: { fileName?: string } },
+    options?: { embedMode?: string; showToolControls?: boolean; showLeftHandPanel?: boolean; showDownloadPDF?: boolean; showPrintPDF?: boolean }
+  ) => void;
+}
 
 export interface ReaderEvent {
   pdfId: string;
@@ -19,8 +35,8 @@ interface FoxitPdfViewerProps {
 
 /**
  * Foxit PDF viewer container.
- * - If Foxit SDK is loaded via NEXT_PUBLIC_FOXIT_SCRIPT_URL, initializes real viewer
- *   and uses getSelectedTextInfo() / viewer events for page and selection.
+ * - If NEXT_PUBLIC_FOXIT_SCRIPT_URL and NEXT_PUBLIC_FOXIT_LICENSE_KEY are set,
+ *   loads Foxit Embed SDK and shows the real PDF viewer.
  * - Otherwise runs in mock mode: selectable text area + page input + "Request question" button.
  */
 export function FoxitPdfViewer({
@@ -30,9 +46,13 @@ export function FoxitPdfViewer({
   onRequestQuestion,
 }: FoxitPdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const embedViewRef = useRef<FoxitEmbedView | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [foxitReady, setFoxitReady] = useState(false);
   const [useMock, setUseMock] = useState(true);
+  const [foxitError, setFoxitError] = useState<string | null>(null);
+  const [localPdfUrl, setLocalPdfUrl] = useState<string | null>(null);
+  const [useLocalIframe, setUseLocalIframe] = useState(false);
   const mockTextRef = useRef<HTMLDivElement>(null);
 
   const emitRequest = useCallback(
@@ -48,7 +68,6 @@ export function FoxitPdfViewer({
     [onSelection, onRequestQuestion]
   );
 
-  // Mock: get selection from the mock text div
   const handleMockRequestQuestion = useCallback(() => {
     let selected = "";
     if (typeof window !== "undefined" && window.getSelection) {
@@ -61,14 +80,25 @@ export function FoxitPdfViewer({
     emitRequest(currentPage, selected || "active learning");
   }, [currentPage, emitRequest]);
 
-  // Load Foxit SDK from CDN if env is set
+  // Load Foxit Embed SDK script
   useEffect(() => {
     const scriptUrl =
       typeof process !== "undefined"
         ? (process.env.NEXT_PUBLIC_FOXIT_SCRIPT_URL as string | undefined)
         : undefined;
-    if (!scriptUrl || !containerRef.current) {
+    const clientId =
+      typeof process !== "undefined"
+        ? (process.env.NEXT_PUBLIC_FOXIT_LICENSE_KEY as string | undefined)
+        : undefined;
+
+    if (!scriptUrl || !clientId?.trim()) {
       setUseMock(true);
+      return;
+    }
+
+    if ((window as Window).FoxitEmbed) {
+      setFoxitReady(true);
+      setUseMock(false);
       return;
     }
 
@@ -76,41 +106,121 @@ export function FoxitPdfViewer({
     script.src = scriptUrl;
     script.async = true;
     script.onload = () => {
-      // Foxit SDK may expose PDFViewCtrl or PDFUI; init depends on your SDK version.
-      const PDFViewCtrl = (window as unknown as { PDFViewCtrl?: unknown }).PDFViewCtrl;
-      const PDFUI = (window as unknown as { PDFUI?: unknown }).PDFUI;
-      if (PDFViewCtrl || PDFUI) {
+      if ((window as Window).FoxitEmbed) {
         setFoxitReady(true);
         setUseMock(false);
-        // Actual init is project-specific (license, lib path). Here we only signal readiness.
-        // You would call e.g. PDFViewCtrl.PDFViewer({ jr: { licenseSN, licenseKey } }).init('#id')
-        // and openPDFByHttpRangeRequest({ url: pdfUrl }) then attach addViewerEventListener.
       } else {
+        setFoxitError("Foxit script loaded but FoxitEmbed not found");
         setUseMock(true);
       }
     };
-    script.onerror = () => setUseMock(true);
+    script.onerror = () => {
+      setFoxitError("Failed to load Foxit script");
+      setUseMock(true);
+    };
     document.body.appendChild(script);
     return () => {
       script.remove();
     };
   }, []);
 
-  // When Foxit is ready, we would init here. For now we only support mock.
+  // For PDFs in public/ (same-origin), use iframe so the file loads without Foxit cloud (which can't fetch localhost)
   useEffect(() => {
-    if (!foxitReady || !containerRef.current) return;
-    // Placeholder: real init would go here with license from env
-    setUseMock(true);
-  }, [foxitReady]);
+    if (typeof window === "undefined") return;
+    const full =
+      pdfUrl.startsWith("http") || pdfUrl.startsWith("blob:")
+        ? pdfUrl
+        : `${window.location.origin}${pdfUrl.startsWith("/") ? pdfUrl : `/${pdfUrl}`}`;
+    const same =
+      pdfUrl.startsWith("/") || full.startsWith(window.location.origin);
+    if (same) {
+      setLocalPdfUrl(full);
+      setUseLocalIframe(true);
+      setUseMock(false);
+      setFoxitError(null);
+    }
+  }, [pdfUrl]);
 
-  // Notify parent of page changes (mock)
+  // Init Foxit Embed viewer when ready and container is mounted (skip when using local iframe)
+  useEffect(() => {
+    if (useLocalIframe || !foxitReady || !containerRef.current) return;
+
+    const clientId = process.env.NEXT_PUBLIC_FOXIT_LICENSE_KEY?.trim();
+    if (!clientId || !window.FoxitEmbed) return;
+
+    const fileName = pdfUrl.split("/").pop() || "document.pdf";
+    const fullPdfUrl =
+      pdfUrl.startsWith("http") || pdfUrl.startsWith("blob:")
+        ? pdfUrl
+        : `${typeof window !== "undefined" ? window.location.origin : ""}${pdfUrl}`;
+
+    const loadPdf = (content: string) => {
+      try {
+        const embedView = new window.FoxitEmbed!.View({
+          clientId,
+          divId: FOXIT_EMBED_DIV_ID,
+        });
+        embedViewRef.current = embedView;
+        embedView.previewFile(
+          {
+            content,
+            metaData: { fileName },
+          },
+          {
+            embedMode: "SIZED_CONTAINER",
+            showToolControls: true,
+            showLeftHandPanel: true,
+            showDownloadPDF: true,
+            showPrintPDF: true,
+          }
+        );
+        setFoxitError(null);
+      } catch (e) {
+        setFoxitError(e instanceof Error ? e.message : "Foxit init failed");
+        setUseMock(true);
+      }
+    };
+    loadPdf(fullPdfUrl);
+
+    return () => {
+      embedViewRef.current = null;
+    };
+  }, [foxitReady, pdfUrl, useLocalIframe]);
+
   useEffect(() => {
     onPageChange?.(currentPage);
   }, [currentPage, onPageChange]);
 
+  if (useLocalIframe && localPdfUrl) {
+    return (
+      <div className="flex h-full w-full flex-col gap-2">
+        <iframe
+          src={localPdfUrl}
+          title="PDF"
+          className="h-full min-h-[500px] w-full rounded-lg border border-border"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => emitRequest(currentPage, "")}
+            className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Request question (current page)
+          </button>
+          <span className="text-xs text-muted-foreground">
+            Select text in the PDF for context, or use the button to ask about the page.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   if (useMock) {
     return (
       <div className="flex h-full flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+        {foxitError && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">{foxitError}</p>
+        )}
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium">Page</label>
           <input
@@ -138,13 +248,11 @@ export function FoxitPdfViewer({
         >
           <strong>NeuronBook — Active reading (mock PDF)</strong>
           <br /><br />
-          This is a placeholder for the Foxit PDF viewer. To use the real viewer, set
-          NEXT_PUBLIC_FOXIT_SCRIPT_URL and NEXT_PUBLIC_FOXIT_LICENSE_KEY and load the Foxit Web SDK.
+          Set NEXT_PUBLIC_FOXIT_SCRIPT_URL and NEXT_PUBLIC_FOXIT_LICENSE_KEY to load the real Foxit viewer.
           <br /><br />
           Active learning means engaging with the material through questions and reflection.
           When you select text and request a question, the backend generates a Socratic question
-          to deepen your understanding. Your answers and difficulty ratings update the Neural Trace
-          knowledge graph and schedule review.
+          to deepen your understanding.
           <br /><br />
           Select any sentence above and click &quot;Request question (from selection)&quot; to try the flow.
         </div>
@@ -153,6 +261,24 @@ export function FoxitPdfViewer({
   }
 
   return (
-    <div ref={containerRef} id="foxit-pdf-container" className="h-full w-full min-h-[400px]" />
+    <div className="flex h-full w-full flex-col gap-2">
+      <div
+        ref={containerRef}
+        id={FOXIT_EMBED_DIV_ID}
+        className="h-full min-h-[500px] w-full rounded-lg border border-border"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => emitRequest(currentPage, "")}
+          className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Request question (current page)
+        </button>
+        <span className="text-xs text-muted-foreground">
+          Select text in the PDF for context, or use the button to ask about the page.
+        </span>
+      </div>
+    </div>
   );
 }

@@ -8,7 +8,7 @@ import type { ConceptEnrichment, Difficulty } from "@/lib/api-types";
 import { generateQuestion, submitAnswer } from "@/lib/neural-trace-api";
 
 const SAMPLE_PDF_URL =
-  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SAMPLE_PDF_URL) || "/sample.pdf";
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SAMPLE_PDF_URL) || "/Lecture1_modified_JG.pdf";
 
 export default function ReaderPage() {
   const [questionData, setQuestionData] = useState<GenerateQuestionResponse | null>(null);
