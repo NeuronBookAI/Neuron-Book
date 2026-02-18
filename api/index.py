@@ -1,8 +1,6 @@
-from flask import Flask
-
-app = Flask(__name__)
-
-
-@app.route("/api/python")
-def hello_world():
-    return "<p>Hello, World!</p>"
+"""
+Entry point for Flask. Use this when running the backend:
+  flask --app index run -p 5328
+  or:  npm run flask-dev
+"""
+from app import app
