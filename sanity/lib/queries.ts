@@ -68,6 +68,23 @@ export const ALL_NEURONS_QUERY = defineQuery(`
   }
 `);
 
+export const NEURONS_WITH_MASTERY_QUERY = defineQuery(`
+  *[_type == "neuron"] | order(title asc) {
+    _id,
+    title,
+    masteryLevel,
+    synapses[]->{ _id, title, masteryLevel },
+    "mastery": *[_type == "mastery" && references(^._id)][0] {
+      srs { lastReviewed, nextReviewDate, confidence, interval }
+    },
+    "textbook": *[_type == "textbook" && references(^._id)][0] {
+      _id,
+      title,
+      file { asset->{ url } }
+    }
+  }
+`);
+
 export const NEURON_STATS_QUERY = defineQuery(`
   {
     "totalNeurons": count(*[_type == "neuron"]),
