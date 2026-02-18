@@ -8,8 +8,6 @@ export default function Home() {
         <h1 className="text-3xl font-bold text-white mb-8">Neuron Book Test Environment</h1>
         <p className="text-gray-400 mb-4">The Socratic Tutor should appear on the right/bottom.</p>
       </div>
-      
-      {/* This pulls in the component you created in components/ui/ */}
       <SocraticPopUp />
     </main>
   );

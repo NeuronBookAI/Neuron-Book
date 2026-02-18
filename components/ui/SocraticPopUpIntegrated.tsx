@@ -1,36 +1,48 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-export default function SocraticPopUp() {
+interface ReaderEvent {
+  pdfId: string;
+  pageNumber: number;
+  selectedText: string;
+}
+
+interface SocraticPopUpIntegratedProps {
+  event: ReaderEvent;
+  onClose: () => void;
+  onAnswerSubmitted?: () => void;
+}
+
+export default function SocraticPopUpIntegrated({
+  event,
+  onClose,
+  onAnswerSubmitted
+}: SocraticPopUpIntegratedProps) {
   const [answer, setAnswer] = useState("");
-  const [confidence, setConfidence] = useState<string>(""); // Selected confidence
+  const [confidence, setConfidence] = useState<string>("");
   const [question, setQuestion] = useState("Loading question...");
   const [pdfContext, setPdfContext] = useState<string[]>([]);
-  const [showContext, setShowContext] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const [currentPage] = useState(15);
-  const [pdfId] = useState("c3ad59b5-2dc2-41a8-9418-16c439b35758");
-  const [selectedText] = useState("the pumping lemma is used to prove that certain languages are not regular");
 
   useEffect(() => {
     loadQuestion();
-  }, []);
+  }, [event]);
 
   const loadQuestion = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:5328/api/question/enhanced', {
+      const res = await fetch('/api/question/enhanced', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pdfId: pdfId,
-          pageNumber: currentPage,
-          selectedText: selectedText
+          pdfId: event.pdfId,
+          pageNumber: event.pageNumber,
+          selectedText: event.selectedText || ""
         })
       });
       
       const data = await res.json();
+      console.log('Question response:', data);
       
       if (data.question) {
         setQuestion(data.question);
@@ -62,39 +74,35 @@ export default function SocraticPopUp() {
     setLoading(true);
     
     try {
-      // Map confidence to difficulty for the API
-      const difficultyMap: Record<string, string> = {
-        'instantly': 'easy',
-        'thought': 'medium',
-        'review': 'hard'
+      const confidenceMap: Record<string, number> = {
+        'instantly': 5,
+        'thought': 3,
+        'review': 1
       };
 
-      const res = await fetch('http://127.0.0.1:5328/api/answer/submit', {
+      const res = await fetch('/api/answer/save-to-sanity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pdfId: pdfId,
-          pageNumber: currentPage,
-          selectedText: selectedText,
+          pdfId: event.pdfId,
+          pageNumber: event.pageNumber,
+          selectedText: event.selectedText,
           question: question,
           answer: answer,
-          difficulty: difficultyMap[confidence] || 'medium'
+          confidenceScore: confidenceMap[confidence],
+          pdfContext: pdfContext.join('\n---\n')
         })
       });
       
       const data = await res.json();
-      console.log('Submit response:', data);
       
-      if (res.ok) {
-        // Show success feedback
-        alert(data.evaluation || 'Answer submitted successfully!');
-        
-        // Clear form and load next question
+      if (res.ok && data.success) {
+        alert('Answer saved successfully to Sanity!');
         setAnswer("");
         setConfidence("");
-        await loadQuestion();
+        onAnswerSubmitted?.();
       } else {
-        alert(`Failed to submit: ${data.error || 'Unknown error'}`);
+        alert(`Save failed: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Submit error:', error);
@@ -105,39 +113,35 @@ export default function SocraticPopUp() {
   };
 
   return (
-    <div className="fixed top-4 right-4 p-6 bg-[#1a1c1e] text-white rounded-xl w-96 border border-gray-700 shadow-2xl">
+    <div className="p-6 bg-[#1a1c1e] text-white min-h-full">
       <div className="flex justify-between items-start mb-4">
         <h3 className="text-xl font-bold">Socratic Question</h3>
-        {pdfContext.length > 0 && (
-          <button
-            onClick={() => setShowContext(!showContext)}
-            className="text-xs text-gray-400 hover:text-blue-400"
-          >
-            {showContext ? 'Hide' : 'Show'} Context
-          </button>
-        )}
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-white text-xl"
+        >
+          ✕
+        </button>
       </div>
       
-      {showContext && pdfContext.length > 0 && (
-        <div className="mb-4 p-3 bg-[#2c2e33] rounded-lg text-xs max-h-32 overflow-y-auto">
-          <p className="text-gray-400 mb-2 font-semibold">Related pages:</p>
-          {pdfContext.map((ctx, i) => (
-            <div key={i} className="mb-2 text-gray-300 text-xs">
-              {ctx}
-            </div>
-          ))}
-        </div>
-      )}
+      <p className="text-xs text-gray-500 mb-4">
+        Page {event.pageNumber}
+        {event.selectedText && (
+          <span className="block mt-1 text-gray-400">
+            "{event.selectedText.slice(0, 60)}..."
+          </span>
+        )}
+      </p>
       
       <div className="mb-4 p-4 bg-[#2c2e33] rounded-lg">
         <p className="text-sm leading-relaxed">
-          {loading ? "Loading..." : question}
+          {loading ? "Loading question..." : question}
         </p>
       </div>
       
       <textarea 
-        className="w-full h-24 p-3 bg-[#2c2e33] rounded-lg text-sm border border-gray-600 focus:border-blue-500 outline-none mb-4"
-        placeholder="Because..... lorem ipsum..."
+        className="w-full h-24 p-3 bg-[#2c2e33] rounded-lg text-sm border border-gray-600 focus:border-blue-500 outline-none mb-4 text-white placeholder-gray-400"
+        placeholder="Type your answer here..."
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
         disabled={loading}
@@ -188,7 +192,7 @@ export default function SocraticPopUp() {
         className="w-full bg-teal-600 hover:bg-teal-700 py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         disabled={loading || !answer.trim() || !confidence}
       >
-        {loading ? 'Submitting...' : 'Submit Answer'}
+        {loading ? 'Saving...' : 'Submit Answer'}
       </button>
     </div>
   );
