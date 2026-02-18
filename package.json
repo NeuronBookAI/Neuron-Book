@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "flask-dev": "cd api && .venv/bin/python -m flask --app index run -p 5328",
-    "next-dev": "next dev",
+    "next-dev": "NODE_OPTIONS='--no-deprecation' next dev",
     "dev": "concurrently \"npm run next-dev\" \"npm run flask-dev\"",
     "build": "next build --webpack",
     "start": "next start",
@@ -23,6 +23,7 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-pdf": "^10.3.0",
     "sanity": "^4.22.0",
     "styled-components": "^6.3.9",
     "tailwind-merge": "^3.4.0"

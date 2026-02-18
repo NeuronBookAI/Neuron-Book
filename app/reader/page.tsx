@@ -6,14 +6,19 @@
  * Falls back to NEXT_PUBLIC_SAMPLE_PDF_URL or the bundled sample PDF.
  * Backend: Flask /api/question/generate and /api/answer/submit (Foxit + You.com).
  */
+import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Sidebar } from "../../src/components/Sidebar";
-import { FoxitPdfViewer } from "@/components/foxit-pdf-viewer";
 import { QuestionSidebar } from "@/components/question-sidebar";
+import { mockSidebarItems } from "../../src/data/mock";
+
+const FoxitPdfViewer = dynamic(
+  () => import("@/components/foxit-pdf-viewer").then((m) => ({ default: m.FoxitPdfViewer })),
+  { ssr: false }
+);
 import type { GenerateQuestionResponse, ConceptEnrichment, Difficulty } from "@/lib/api-types";
 import { generateQuestion, submitAnswer } from "@/lib/neural-trace-api";
-import { mockSidebarItems } from "../../src/data/mock";
 
 const FALLBACK_PDF_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SAMPLE_PDF_URL) || "/Lecture1_modified_JG.pdf";
