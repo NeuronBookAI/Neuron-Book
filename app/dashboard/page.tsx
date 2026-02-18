@@ -1,11 +1,9 @@
 /**
- * Dashboard page component for NeuronBook
- * Main dashboard page displaying statistics, decay meter, neural trace, and recent sessions
- * 
- * Data source: Currently uses mock data from src/data/mock.ts
- * To replace with real data: Replace mock imports with real API calls
- * 
- * This is the main dashboard route at /dashboard
+ * Dashboard page — wired to Sanity.
+ * Stats: real neuron/textbook counts.
+ * Decay Meter: mastery items ordered by nextReviewDate.
+ * Recent Sessions: latest textbooks.
+ * Neural Trace: still uses empty mock (implemented separately).
  */
 
 import { Sidebar } from '../../src/components/Sidebar';
@@ -13,44 +11,107 @@ import { StatRow } from '../../src/components/StatRow';
 import { DecayMeter } from '../../src/components/DecayMeter';
 import { NeuralTracePanel } from '../../src/components/NeuralTracePanel';
 import { RecentSessions } from '../../src/components/RecentSessions';
-import { 
-  mockStats, 
-  mockDecayItems, 
-  mockNeuralNodes, 
-  mockNeuralEdges, 
-  mockSessions, 
-  mockSidebarItems 
-} from '../../src/data/mock';
+import { mockNeuralNodes, mockNeuralEdges, mockSidebarItems } from '../../src/data/mock';
+import { sanityFetch } from '@/sanity/lib/live';
+import { DASHBOARD_STATS_QUERY, ALL_MASTERY_QUERY, RECENT_TEXTBOOKS_QUERY } from '@/sanity/lib/queries';
+import type { SanityMastery, SanityTextbook, SanityDashboardStats } from '@/src/types/sanity';
+import type { StatCard, DecayItem, Session } from '../../src/types/dashboard';
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const [{ data: rawStats }, { data: rawMastery }, { data: rawTextbooks }] = await Promise.all([
+    sanityFetch({ query: DASHBOARD_STATS_QUERY }),
+    sanityFetch({ query: ALL_MASTERY_QUERY }),
+    sanityFetch({ query: RECENT_TEXTBOOKS_QUERY }),
+  ]);
+
+  const stats = rawStats as SanityDashboardStats | null;
+  const masteryItems = (rawMastery ?? []) as SanityMastery[];
+  const recentBooks = (rawTextbooks ?? []) as SanityTextbook[];
+
+  // Build stat cards from real data
+  const statCards: StatCard[] = [
+    {
+      label: 'Active Neurons',
+      value: String(stats?.neuronCount ?? 0),
+      icon: 'Brain',
+    },
+    {
+      label: 'Textbooks',
+      value: String(stats?.textbookCount ?? 0),
+      icon: 'BookOpen',
+    },
+    {
+      label: 'Mastery Sessions',
+      value: String(stats?.masteryCount ?? 0),
+      icon: 'Trophy',
+    },
+  ];
+
+  // Build decay items from mastery SRS data
+  const decayItems: DecayItem[] = masteryItems.slice(0, 5).map((m) => {
+    const nextReview = m.srs?.nextReviewDate ? new Date(m.srs.nextReviewDate) : null;
+    const now = new Date();
+    const daysOverdue = nextReview ? Math.max(0, Math.floor((now.getTime() - nextReview.getTime()) / 86400000)) : 0;
+    const decayPercent = Math.min(100, daysOverdue * 10 + (100 - (m.srs?.confidence ?? 1) * 20));
+    const priority: DecayItem['priority'] = decayPercent >= 70 ? 'high' : decayPercent >= 40 ? 'medium' : 'low';
+    const lastReviewed = m.srs?.lastReviewed
+      ? new Date(m.srs.lastReviewed).toLocaleDateString()
+      : 'Never';
+
+    return {
+      id: m._id,
+      topic: m.title,
+      decayPercent: Math.round(Math.min(100, Math.max(0, decayPercent))),
+      lastStudied: lastReviewed,
+      priority,
+    };
+  });
+
+  // Build recent sessions from textbooks
+  const sessions: Session[] = recentBooks.map((book) => ({
+    id: book._id,
+    title: book.title,
+    thumbnail: '/api/placeholder/300/400',
+    progress: book.neurons?.length ? Math.min(100, book.neurons.length * 10) : 0,
+  }));
+
   return (
     <div className="min-h-screen glass-bg">
       <div className="flex h-screen p-6 space-x-6">
-        {/* Sidebar */}
         <Sidebar items={mockSidebarItems} />
-        
-        {/* Main Content */}
+
         <div className="flex-1 space-y-6 overflow-y-auto">
-          {/* Stats Row */}
-          <StatRow stats={mockStats} />
-          
-          {/* Middle Row: Neural Trace and decay meter fake mock implementation for now*/}
+          <StatRow stats={statCards} />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Decay Meter - Smaller */}
             <div className="lg:col-span-1 h-fit">
-              <DecayMeter items={mockDecayItems} />
+              {decayItems.length > 0 ? (
+                <DecayMeter items={decayItems} />
+              ) : (
+                <div className="glass-panel rounded-2xl p-6 border border-white/10">
+                  <h2 className="text-xl font-bold text-white mb-3">Decay Meter</h2>
+                  <p className="text-gray-400 text-sm">No mastery sessions yet. Start reviewing to track decay.</p>
+                </div>
+              )}
             </div>
-            
-            {/* Neural Trace Panel - Bigger */}
+
             <div className="lg:col-span-2">
+              {/* Neural Trace — implemented separately */}
               <NeuralTracePanel nodes={mockNeuralNodes} edges={mockNeuralEdges} />
             </div>
           </div>
-          
-          {/* Recent Sessions */}
-          <RecentSessions sessions={mockSessions} />
+
+          {sessions.length > 0 ? (
+            <RecentSessions sessions={sessions} />
+          ) : (
+            <div className="glass-panel rounded-2xl p-6 border border-white/10">
+              <h2 className="text-xl font-bold text-white mb-3">Recent Sessions</h2>
+              <p className="text-gray-400 text-sm">No textbooks yet. Add some in the Library.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
