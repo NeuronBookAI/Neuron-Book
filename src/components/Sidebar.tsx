@@ -20,6 +20,7 @@ import {
   Home, 
   Plus, 
   BookOpen, 
+  BookMarked,
   Network, 
   Settings 
 } from 'lucide-react';
@@ -31,6 +32,7 @@ const IconMap = {
   Home,
   Plus,
   BookOpen,
+  BookMarked,
   Network,
   Settings,
 };

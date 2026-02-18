@@ -75,6 +75,7 @@ export const mockSidebarItems: SidebarItem[] = [
   { id: '1', label: 'Dashboard', icon: 'Home', route: '/dashboard', isActive: true },
   { id: '2', label: 'Add Content', icon: 'Plus', route: '/library' },
   { id: '3', label: 'Library', icon: 'BookOpen', route: '/library' },
-  { id: '4', label: 'Network', icon: 'Network', route: '/network' },
-  { id: '5', label: 'Settings', icon: 'Settings', route: '/settings' }
+  { id: '4', label: 'Reader', icon: 'BookMarked', route: '/reader' },
+  { id: '5', label: 'Network', icon: 'Network', route: '/network' },
+  { id: '6', label: 'Settings', icon: 'Settings', route: '/settings' }
 ];

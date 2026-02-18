@@ -1,11 +1,10 @@
 /**
  * Library page component for NeuronBook
- * Placeholder page for content library and PDF uploads
- * 
- * Data source: Currently uses mock data from src/data/mock.ts
- * To replace with real data: Replace mock imports with real API calls
+ * Placeholder page for content library and PDF uploads.
+ * Open a document in the Reader (backend: Foxit + You.com Socratic questions).
  */
 
+import Link from 'next/link';
 import { Sidebar } from '../../src/components/Sidebar';
 import { mockSidebarItems } from '../../src/data/mock';
 
@@ -30,14 +29,18 @@ export default function Library() {
             <p className="text-gray-400 text-sm">Drag and drop or click to browse</p>
           </div>
           
-          {/* Library Grid */}
+          {/* Library Grid — open in Reader (backend-powered) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="glass-panel rounded-xl p-4 border border-white/10">
-                <div className="w-full h-24 bg-gradient-to-br from-teal-500/20 to-purple-500/20 rounded-lg mb-3"></div>
+              <Link
+                key={i}
+                href="/reader"
+                className="glass-panel rounded-xl p-4 border border-white/10 block hover:border-teal-400/30 transition-colors"
+              >
+                <div className="w-full h-24 bg-gradient-to-br from-teal-500/20 to-purple-500/20 rounded-lg mb-3" />
                 <h4 className="text-white text-sm font-medium truncate">Document {i}.pdf</h4>
-                <p className="text-gray-500 text-xs">2.3 MB</p>
-              </div>
+                <p className="text-gray-500 text-xs">2.3 MB · Open in Reader</p>
+              </Link>
             ))}
           </div>
         </div>

@@ -25,17 +25,12 @@ export const neuronType = defineType({
       of: [{ type: "block" }],
     }),
     defineField({
-      name: "mastery",
-      title: "Mastery",
-      type: "reference",
-      to: [{ type: "mastery" }],
-    }),
-    defineField({
-      name: "user",
-      title: "Owner",
-      type: "reference",
-      to: [{ type: "user" }],
-      validation: (Rule) => Rule.required(),
+      name: "masteryLevel",
+      title: "Mastery Level (Strength)",
+      description: "The current strength or proficiency of this neuron node.",
+      type: "number",
+      initialValue: 0,
+      validation: (rule) => rule.min(0).max(100).precision(2),
     }),
   ],
 });
