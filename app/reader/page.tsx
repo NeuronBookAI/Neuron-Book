@@ -2,10 +2,12 @@
 
 /**
  * Reader page — part of the main app (dashboard) frontend.
- * Uses the same layout as Dashboard/Library (Sidebar + glass-bg).
+ * Accepts ?url and ?title search params to open a specific Sanity PDF.
+ * Falls back to NEXT_PUBLIC_SAMPLE_PDF_URL or the bundled sample PDF.
  * Backend: Flask /api/question/generate and /api/answer/submit (Foxit + You.com).
  */
 import { useCallback, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Sidebar } from "../../src/components/Sidebar";
 import { FoxitPdfViewer } from "@/components/foxit-pdf-viewer";
 import { QuestionSidebar } from "@/components/question-sidebar";
@@ -13,10 +15,14 @@ import type { GenerateQuestionResponse, ConceptEnrichment, Difficulty } from "@/
 import { generateQuestion, submitAnswer } from "@/lib/neural-trace-api";
 import { mockSidebarItems } from "../../src/data/mock";
 
-const SAMPLE_PDF_URL =
+const FALLBACK_PDF_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SAMPLE_PDF_URL) || "/Lecture1_modified_JG.pdf";
 
 export default function ReaderPage() {
+  const searchParams = useSearchParams();
+  const pdfUrl = searchParams.get("url") ?? FALLBACK_PDF_URL;
+  const pdfTitle = searchParams.get("title") ?? "Reader — Socratic questions";
+
   const [questionData, setQuestionData] = useState<GenerateQuestionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,12 +104,12 @@ export default function ReaderPage() {
         <div className="flex-1 flex flex-col min-w-0">
           <div className="glass-panel rounded-3xl flex-1 flex flex-col overflow-hidden">
             <header className="border-b border-white/10 px-4 py-2 shrink-0">
-              <h1 className="text-lg font-semibold text-white">Reader — Socratic questions</h1>
+              <h1 className="text-lg font-semibold text-white truncate">{pdfTitle}</h1>
             </header>
             <div className="flex flex-1 min-h-0">
               <main className="flex-1 overflow-auto p-4">
                 <FoxitPdfViewer
-                  pdfUrl={SAMPLE_PDF_URL}
+                  pdfUrl={pdfUrl}
                   onRequestQuestion={(ev) => requestQuestion(ev.pdfId, ev.pageNumber, ev.selectedText)}
                 />
               </main>

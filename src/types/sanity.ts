@@ -14,7 +14,7 @@ export interface SanityFolder {
   _id: string;
   title: string;
   parentFolder?: { _id: string; title: string } | null;
-  documents?: { _id: string; title: string }[];
+  documents?: { _id: string; title: string; file?: { asset?: { url: string } }; neurons?: { _id: string }[] }[];
 }
 
 export interface SanityNeuron {

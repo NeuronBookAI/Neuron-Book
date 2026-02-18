@@ -30,7 +30,7 @@ export const ALL_FOLDERS_QUERY = defineQuery(`
     _id,
     title,
     parentFolder->{ _id, title },
-    documents[]->{ _id, title }
+    documents[]->{ _id, title, file { asset->{ url } }, neurons[]->{ _id } }
   }
 `);
 
