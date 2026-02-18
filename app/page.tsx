@@ -24,9 +24,8 @@ export default function LandingPage() {
           <Image
             src="/NeruonBook_t%201.webp"
             alt="NeuronBook"
-            width={437}
-            height={379}
-            className="h-10 w-auto"
+            width={150}
+            height={150}
             priority
           />
         </div>
