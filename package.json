@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "flask-dev": "node scripts/start-flask.js",
+    "flask-dev": "cd api && .venv\\Scripts\\activate && python -m flask --app index run -p 5328",
     "next-dev": "next dev",
     "dev": "concurrently \"npm run next-dev\" \"npm run flask-dev\"",
     "build": "next build",
