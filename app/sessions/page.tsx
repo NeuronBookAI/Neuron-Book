@@ -1,12 +1,9 @@
-/**
- * Sessions page — shows mastery sessions with SRS (spaced repetition) data from Sanity.
- * Ordered by nextReviewDate so most urgent reviews appear first.
- */
-
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Sidebar } from '../../src/components/Sidebar';
 import { mockSidebarItems } from '../../src/data/mock';
-import { sanityFetch } from '@/sanity/lib/live';
+import { writeClient } from '@/sanity/lib/write-client';
 import { ALL_MASTERY_QUERY } from '@/sanity/lib/queries';
 import type { SanityMastery } from '@/src/types/sanity';
 
@@ -21,8 +18,10 @@ function isOverdue(iso?: string) {
 }
 
 export default async function Sessions() {
-  const { data: rawMastery } = await sanityFetch({ query: ALL_MASTERY_QUERY });
-  const masteryItems = (rawMastery ?? []) as SanityMastery[];
+  const { userId } = await auth();
+  if (!userId) redirect('/');
+
+  const masteryItems = (await writeClient.fetch(ALL_MASTERY_QUERY, { clerkId: userId }) ?? []) as SanityMastery[];
 
   return (
     <div className="min-h-screen glass-bg">

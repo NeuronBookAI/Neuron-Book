@@ -1,8 +1,5 @@
-/**
- * Network page — shows real neuron/synapse counts and avg mastery from Sanity.
- * The interactive graph is rendered by NeuralTrace (react-force-graph-2d).
- */
-
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import { Sidebar } from '../../src/components/Sidebar';
 import { mockSidebarItems } from '../../src/data/mock';
 import { writeClient } from '@/sanity/lib/write-client';
@@ -11,9 +8,13 @@ import type { SanityNeuronStats } from '@/src/types/sanity';
 import NeuralTrace from './NeuralTrace';
 
 export default async function Network() {
+  const { userId } = await auth();
+  if (!userId) redirect('/');
+
+  const params = { clerkId: userId };
   const [neuronStats, neurons] = await Promise.all([
-    writeClient.fetch(NEURON_STATS_QUERY),
-    writeClient.fetch(NEURONS_WITH_MASTERY_QUERY),
+    writeClient.fetch(NEURON_STATS_QUERY, params),
+    writeClient.fetch(NEURONS_WITH_MASTERY_QUERY, params),
   ]);
 
   const stats = neuronStats as SanityNeuronStats | null;
@@ -52,7 +53,7 @@ export default async function Network() {
 
           {/* Neural Trace graph */}
           {neurons && neurons.length > 0 ? (
-            <NeuralTrace neurons={neurons} />
+            <NeuralTrace neurons={neurons} clerkId={userId} />
           ) : (
             <div className="h-96 bg-black/20 rounded-2xl border border-white/10 flex items-center justify-center">
               <div className="text-center">

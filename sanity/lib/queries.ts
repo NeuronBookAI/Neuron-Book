@@ -26,7 +26,7 @@ export const USER_BY_CLERK_ID_QUERY = defineQuery(`
 // ── Textbooks ─────────────────────────────────────────────────────────────────
 
 export const ALL_TEXTBOOKS_QUERY = defineQuery(`
-  *[_type == "textbook"] | order(_createdAt desc) {
+  *[_type == "textbook" && user->userId == $clerkId] | order(_createdAt desc) {
     _id,
     title,
     file { asset->{ url } },
@@ -37,7 +37,7 @@ export const ALL_TEXTBOOKS_QUERY = defineQuery(`
 `);
 
 export const RECENT_TEXTBOOKS_QUERY = defineQuery(`
-  *[_type == "textbook"] | order(_createdAt desc)[0..4] {
+  *[_type == "textbook" && user->userId == $clerkId] | order(_createdAt desc)[0..4] {
     _id,
     title,
     file { asset->{ url } },
@@ -49,7 +49,7 @@ export const RECENT_TEXTBOOKS_QUERY = defineQuery(`
 // ── Folders ───────────────────────────────────────────────────────────────────
 
 export const ALL_FOLDERS_QUERY = defineQuery(`
-  *[_type == "folder"] | order(title asc) {
+  *[_type == "folder" && user->userId == $clerkId] | order(title asc) {
     _id,
     title,
     parentFolder->{ _id, title },
@@ -60,7 +60,7 @@ export const ALL_FOLDERS_QUERY = defineQuery(`
 // ── Neurons ───────────────────────────────────────────────────────────────────
 
 export const ALL_NEURONS_QUERY = defineQuery(`
-  *[_type == "neuron"] | order(title asc) {
+  *[_type == "neuron" && user->userId == $clerkId] | order(title asc) {
     _id,
     title,
     masteryLevel,
@@ -69,7 +69,7 @@ export const ALL_NEURONS_QUERY = defineQuery(`
 `);
 
 export const NEURONS_WITH_MASTERY_QUERY = defineQuery(`
-  *[_type == "neuron"] | order(title asc) {
+  *[_type == "neuron" && user->userId == $clerkId] | order(title asc) {
     _id,
     title,
     masteryLevel,
@@ -88,16 +88,16 @@ export const NEURONS_WITH_MASTERY_QUERY = defineQuery(`
 
 export const NEURON_STATS_QUERY = defineQuery(`
   {
-    "totalNeurons": count(*[_type == "neuron"]),
-    "totalSynapses": count(*[_type == "neuron" && defined(synapses)].synapses[]),
-    "avgMastery": math::avg(*[_type == "neuron"].masteryLevel)
+    "totalNeurons": count(*[_type == "neuron" && user->userId == $clerkId]),
+    "totalSynapses": count(*[_type == "neuron" && user->userId == $clerkId && defined(synapses)].synapses[]),
+    "avgMastery": math::avg(*[_type == "neuron" && user->userId == $clerkId].masteryLevel)
   }
 `);
 
 // ── Mastery / SRS ─────────────────────────────────────────────────────────────
 
 export const ALL_MASTERY_QUERY = defineQuery(`
-  *[_type == "mastery"] | order(srs.nextReviewDate asc) {
+  *[_type == "mastery" && user->userId == $clerkId] | order(srs.nextReviewDate asc) {
     _id,
     title,
     user->{ _id, username },
@@ -115,8 +115,8 @@ export const ALL_MASTERY_QUERY = defineQuery(`
 
 export const DASHBOARD_STATS_QUERY = defineQuery(`
   {
-    "neuronCount": count(*[_type == "neuron"]),
-    "textbookCount": count(*[_type == "textbook"]),
-    "masteryCount": count(*[_type == "mastery"])
+    "neuronCount": count(*[_type == "neuron" && user->userId == $clerkId]),
+    "textbookCount": count(*[_type == "textbook" && user->userId == $clerkId]),
+    "masteryCount": count(*[_type == "mastery" && user->userId == $clerkId])
   }
 `);

@@ -1,32 +1,30 @@
-/**
- * Dashboard page — wired to Sanity.
- * Stats: real neuron/textbook counts.
- * Decay Meter: mastery items ordered by nextReviewDate.
- * Recent Sessions: latest textbooks.
- * Neural Trace: still uses empty mock (implemented separately).
- */
-
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import { Sidebar } from '../../src/components/Sidebar';
 import { StatRow } from '../../src/components/StatRow';
 import { DecayMeter } from '../../src/components/DecayMeter';
 import { NeuralTracePanel } from '../../src/components/NeuralTracePanel';
 import { RecentSessions } from '../../src/components/RecentSessions';
 import { mockNeuralNodes, mockNeuralEdges, mockSidebarItems } from '../../src/data/mock';
-import { sanityFetch } from '@/sanity/lib/live';
+import { writeClient } from '@/sanity/lib/write-client';
 import { DASHBOARD_STATS_QUERY, ALL_MASTERY_QUERY, RECENT_TEXTBOOKS_QUERY } from '@/sanity/lib/queries';
 import type { SanityMastery, SanityTextbook, SanityDashboardStats } from '@/src/types/sanity';
 import type { StatCard, DecayItem, Session } from '../../src/types/dashboard';
+import { getOrCreateSanityUser } from '../../lib/sanity-user';
 
 export default async function Dashboard() {
-  const [{ data: rawStats }, { data: rawMastery }, { data: rawTextbooks }] = await Promise.all([
-    sanityFetch({ query: DASHBOARD_STATS_QUERY }),
-    sanityFetch({ query: ALL_MASTERY_QUERY }),
-    sanityFetch({ query: RECENT_TEXTBOOKS_QUERY }),
-  ]);
+  const { userId } = await auth();
+  if (!userId) redirect('/');
 
-  const stats = rawStats as SanityDashboardStats | null;
-  const masteryItems = (rawMastery ?? []) as SanityMastery[];
-  const recentBooks = (rawTextbooks ?? []) as SanityTextbook[];
+  // Ensure Sanity user doc exists on first login
+  await getOrCreateSanityUser({ clerkId: userId, name: 'User', email: '' });
+
+  const params = { clerkId: userId };
+  const [stats, masteryItems, recentBooks] = await Promise.all([
+    writeClient.fetch(DASHBOARD_STATS_QUERY, params),
+    writeClient.fetch(ALL_MASTERY_QUERY, params),
+    writeClient.fetch(RECENT_TEXTBOOKS_QUERY, params),
+  ]) as [SanityDashboardStats | null, SanityMastery[], SanityTextbook[]];
 
   // Build stat cards from real data
   const statCards: StatCard[] = [

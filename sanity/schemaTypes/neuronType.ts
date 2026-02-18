@@ -6,6 +6,12 @@ export const neuronType = defineType({
   type: "document",
   fields: [
     defineField({
+      name: "user",
+      title: "Owner",
+      type: "reference",
+      to: [{ type: "user" }],
+    }),
+    defineField({
       name: "title",
       title: "Neuron Title",
       type: "string",

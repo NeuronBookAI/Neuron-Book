@@ -57,6 +57,7 @@ interface GraphLink {
 
 interface Props {
   neurons: NeuronNode[];
+  clerkId: string; // passed for future per-user graph logic; createNeuron reads auth() internally
 }
 
 function masteryColor(mastery: number): string {
@@ -71,8 +72,7 @@ function formatDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function NeuralTrace({ neurons }: Props) {
-  const router = useRouter();
+export default function NeuralTrace({ neurons }: Props) {  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 520 });
   const [selected, setSelected] = useState<NeuronNode | null>(null);

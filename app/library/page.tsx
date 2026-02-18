@@ -1,19 +1,21 @@
-/**
- * Library page — recursive folder + textbook browser backed by Sanity.
- */
-
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Sidebar } from '../../src/components/Sidebar';
 import { mockSidebarItems } from '../../src/data/mock';
-import { sanityFetch } from '@/sanity/lib/live';
+import { writeClient } from '@/sanity/lib/write-client';
 import { ALL_TEXTBOOKS_QUERY, ALL_FOLDERS_QUERY } from '@/sanity/lib/queries';
 import type { SanityTextbook, SanityFolder } from '@/src/types/sanity';
 import { FolderBrowser } from './FolderBrowser';
 
 export default async function Library() {
-  const [{ data: textbooks }, { data: folders }] = await Promise.all([
-    sanityFetch({ query: ALL_TEXTBOOKS_QUERY }),
-    sanityFetch({ query: ALL_FOLDERS_QUERY }),
+  const { userId } = await auth();
+  if (!userId) redirect('/');
+
+  const params = { clerkId: userId };
+  const [textbooks, folders] = await Promise.all([
+    writeClient.fetch(ALL_TEXTBOOKS_QUERY, params),
+    writeClient.fetch(ALL_FOLDERS_QUERY, params),
   ]);
 
   const books = (textbooks ?? []) as SanityTextbook[];
