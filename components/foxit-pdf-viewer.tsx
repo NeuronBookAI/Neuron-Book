@@ -1,6 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+
+// PDF.js worker (same module as Document/Page usage per react-pdf docs)
+if (typeof window !== "undefined") {
+  pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+}
 
 const PDF_ID = "neuron-book-sample-pdf";
 const FOXIT_EMBED_DIV_ID = "foxit-embed-view";
@@ -54,9 +62,11 @@ export function FoxitPdfViewer({
   const [localPdfUrl, setLocalPdfUrl] = useState<string | null>(null);
   const [useLocalIframe, setUseLocalIframe] = useState(false);
   const [contextText, setContextText] = useState("");
+  const [numPages, setNumPages] = useState<number | null>(null);
   const lastEmbedSelectionRef = useRef<string>("");
   const mockTextRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
 
   const emitRequest = useCallback(
     (page: number, selectedText: string) => {
@@ -83,8 +93,23 @@ export function FoxitPdfViewer({
     emitRequest(currentPage, selected || "active learning");
   }, [currentPage, emitRequest]);
 
-  /** Get current selection: context field, postMessage from embed, main/iframe getSelection(), or any iframe under Foxit container. */
-  const handleRequestQuestionWithSelection = useCallback(() => {
+  /** Get selection from in-page PDF (react-pdf): just use getSelection(). */
+  const handleRequestQuestionFromSelection = useCallback(() => {
+    const fromContext = contextText.trim();
+    if (fromContext) {
+      emitRequest(currentPage, fromContext);
+      setContextText("");
+      return;
+    }
+    let selected = "";
+    if (typeof window !== "undefined" && window.getSelection) {
+      selected = (window.getSelection()?.toString() ?? "").trim();
+    }
+    emitRequest(currentPage, selected || "");
+  }, [currentPage, contextText, emitRequest]);
+
+  /** Get current selection: context field, clipboard, postMessage from embed, or iframe getSelection (when not using react-pdf). */
+  const handleRequestQuestionWithSelection = useCallback(async () => {
     const fromContext = contextText.trim();
     if (fromContext) {
       emitRequest(currentPage, fromContext);
@@ -103,6 +128,14 @@ export function FoxitPdfViewer({
         else if (doc?.getSelection) selected = (doc.getSelection()?.toString() ?? "").trim();
       } catch {
         // cross-origin or no access
+      }
+    }
+    if (!selected && typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+      try {
+        const clip = await navigator.clipboard.readText();
+        selected = (clip ?? "").trim();
+      } catch {
+        // permission denied or clipboard empty
       }
     }
     if (!selected && lastEmbedSelectionRef.current) {
@@ -262,33 +295,68 @@ export function FoxitPdfViewer({
   if (useLocalIframe && localPdfUrl) {
     return (
       <div className="flex h-full w-full flex-col gap-2">
-        <iframe
-          ref={iframeRef}
-          src={localPdfUrl}
-          title="PDF"
-          className="h-full min-h-[500px] w-full rounded-lg border border-border"
-        />
-        <div className="flex flex-col gap-2">
-          <input
-            type="text"
-            placeholder="Context (optional): paste highlighted text if the viewer didn’t capture it"
-            value={contextText}
-            onChange={(e) => setContextText(e.target.value)}
-            className="w-full rounded border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground"
-          />
+        <div
+          ref={pdfContainerRef}
+          className="flex-1 min-h-[400px] overflow-auto rounded-lg border border-border bg-[#525659]"
+        >
+          <Document
+            file={localPdfUrl}
+            onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+            onLoadError={(e) => setFoxitError(e?.message ?? "Failed to load PDF")}
+            loading={
+              <div className="flex min-h-[400px] items-center justify-center text-muted-foreground">
+                Loading PDF…
+              </div>
+            }
+          >
+            <Page
+              pageNumber={currentPage}
+              width={Math.min(typeof window !== "undefined" ? window.innerWidth - 48 : 800, 800)}
+              renderTextLayer
+              renderAnnotationLayer
+            />
+          </Document>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleRequestQuestionWithSelection}
-              className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              className="rounded border border-input bg-background px-2 py-1 text-sm disabled:opacity-50"
             >
-              Request question (current page)
+              Previous
             </button>
-            <span className="text-xs text-muted-foreground">
-              Or highlight in the PDF and click — questions vary by page when no context is sent.
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} {numPages != null ? `of ${numPages}` : ""}
             </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(numPages ?? p, p + 1))}
+              disabled={numPages != null && currentPage >= numPages}
+              className="rounded border border-input bg-background px-2 py-1 text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
           </div>
+          <input
+            type="text"
+            placeholder="Or paste text here to ask about it"
+            value={contextText}
+            onChange={(e) => setContextText(e.target.value)}
+            className="flex-1 min-w-[200px] rounded border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground"
+          />
+          <button
+            type="button"
+            onClick={handleRequestQuestionFromSelection}
+            className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Request question (current page)
+          </button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Select text in the PDF above, then click &quot;Request question&quot; — no copy/paste needed.
+        </p>
       </div>
     );
   }
@@ -348,12 +416,12 @@ export function FoxitPdfViewer({
       <div className="flex flex-col gap-2">
         <div>
           <label htmlFor="foxit-context" className="mb-1 block text-xs font-medium text-muted-foreground">
-            For questions about specific text: highlight in the PDF → copy (Ctrl+C) → paste here
+            Highlight in PDF → copy (Ctrl+C) → paste here, or we'll use clipboard when you click the button
           </label>
           <input
             id="foxit-context"
             type="text"
-            placeholder="Paste your selection here (Foxit viewer can’t send it automatically)"
+            placeholder="Paste your selection here (or leave empty and we'll try clipboard)"
             value={contextText}
             onChange={(e) => setContextText(e.target.value)}
             className="w-full rounded border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground"
@@ -362,13 +430,13 @@ export function FoxitPdfViewer({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleRequestQuestionWithSelection}
+            onClick={() => void handleRequestQuestionWithSelection()}
             className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Request question (current page)
           </button>
           <span className="text-xs text-muted-foreground">
-            With selection in the box above → question about that text. Empty → question varies by page.
+            With selection in the box above (or in clipboard) → question about that text. Empty → question varies by page.
           </span>
         </div>
       </div>
