@@ -1,5 +1,28 @@
 import { defineQuery } from "next-sanity";
 
+// ── User ──────────────────────────────────────────────────────────────────────
+
+export const USER_BY_CLERK_ID_QUERY = defineQuery(`
+  *[_type == "user" && userId == $clerkId][0] {
+    _id,
+    username,
+    email,
+    userId,
+    learningPreferences {
+      dailyGoalMinutes,
+      difficultyLevel,
+      reminderFrequency,
+      socraticDepth
+    },
+    notifications {
+      studyReminders,
+      achievementAlerts,
+      weeklyReports,
+      reviewDueAlerts
+    }
+  }
+`);
+
 // ── Textbooks ─────────────────────────────────────────────────────────────────
 
 export const ALL_TEXTBOOKS_QUERY = defineQuery(`

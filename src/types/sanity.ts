@@ -8,6 +8,18 @@ export interface SanityUser {
   username: string;
   email?: string;
   userId?: string;
+  learningPreferences?: {
+    dailyGoalMinutes?: number;
+    difficultyLevel?: "easy" | "medium" | "hard";
+    reminderFrequency?: "daily" | "weekly" | "never";
+    socraticDepth?: "surface" | "conceptual" | "deep";
+  };
+  notifications?: {
+    studyReminders?: boolean;
+    achievementAlerts?: boolean;
+    weeklyReports?: boolean;
+    reviewDueAlerts?: boolean;
+  };
 }
 
 export interface SanityFolder {
