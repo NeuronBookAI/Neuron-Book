@@ -24,6 +24,7 @@ import {
   Network, 
   Settings 
 } from 'lucide-react';
+import { UserButton } from '@clerk/nextjs';
 import { cn } from '../../lib/utils';
 import { SidebarItem } from '../../src/types/dashboard';
 
@@ -79,9 +80,15 @@ export function Sidebar({ items, className }: SidebarProps) {
         })}
       </nav>
 
-      {/* User Profile Area */}
-      <div className="w-12 h-12 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
-        <span className="text-white font-semibold text-sm">K</span>
+      {/* User Profile — Clerk UserButton */}
+      <div className="flex items-center justify-center">
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "w-10 h-10 rounded-2xl",
+            },
+          }}
+        />
       </div>
     </div>
   );

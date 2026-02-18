@@ -14,20 +14,47 @@ import {
   ArrowRight,
   Upload,
 } from "lucide-react";
+import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0a0f12] text-white font-sans selection:bg-teal-500/30">
       {/* Navigation Header */}
-      <nav className="flex justify-center py-8 border-b border-white/5">
+      <nav className="flex justify-between items-center py-6 px-8 border-b border-white/5 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-3">
           <Image
             src="/NeruonBook_t%201.webp"
             alt="NeuronBook"
-            width={150}
-            height={150}
+            width={80}
+            height={80}
             priority
           />
+        </div>
+        <div className="flex items-center gap-3">
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="text-sm font-medium text-gray-300 hover:text-white px-4 py-2 rounded-full border border-white/10 hover:border-white/30 transition-all">
+                Sign in
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="text-sm font-bold bg-teal-400 hover:bg-teal-300 text-[#0a0f12] px-5 py-2 rounded-full transition-all">
+                Get started
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <Link
+              href="/dashboard"
+              className="text-sm font-bold bg-teal-400 hover:bg-teal-300 text-[#0a0f12] px-5 py-2 rounded-full transition-all inline-flex items-center gap-2 group"
+            >
+              Dashboard{" "}
+              <ArrowRight
+                size={15}
+                className="group-hover:translate-x-0.5 transition-transform"
+              />
+            </Link>
+          </SignedIn>
         </div>
       </nav>
 
@@ -41,16 +68,29 @@ export default function LandingPage() {
           Transform passive highlights into an evolving map of expertise with
           the world&apos;s first metacognitive learning engine.
         </p>
-        <Link
-          href="/dashboard"
-          className="bg-teal-400 hover:bg-teal-300 text-[#0a0f12] px-8 py-3 rounded-full font-bold transition-all inline-flex items-center gap-2 group"
-        >
-          Get started{" "}
-          <ArrowRight
-            size={18}
-            className="group-hover:translate-x-1 transition-transform"
-          />
-        </Link>
+        <SignedOut>
+          <SignUpButton mode="modal">
+            <button className="bg-teal-400 hover:bg-teal-300 text-[#0a0f12] px-8 py-3 rounded-full font-bold transition-all inline-flex items-center gap-2 group">
+              Get started{" "}
+              <ArrowRight
+                size={18}
+                className="group-hover:translate-x-1 transition-transform"
+              />
+            </button>
+          </SignUpButton>
+        </SignedOut>
+        <SignedIn>
+          <Link
+            href="/dashboard"
+            className="bg-teal-400 hover:bg-teal-300 text-[#0a0f12] px-8 py-3 rounded-full font-bold transition-all inline-flex items-center gap-2 group"
+          >
+            Go to Dashboard{" "}
+            <ArrowRight
+              size={18}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </Link>
+        </SignedIn>
       </section>
 
       {/* Features Grid */}
