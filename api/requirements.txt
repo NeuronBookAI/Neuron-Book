@@ -1,1 +1,7 @@
 Flask==3.1.2
+flask-cors==5.0.0
+python-dotenv==1.0.1
+requests==2.32.3
+
+
+# cd api && py -m venv .venv && .\.venv\Scripts\python.exe -m pip install -r requirements.txt && cd .. && npm run dev
