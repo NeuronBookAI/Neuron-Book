@@ -1,7 +1,6 @@
 "use server";
 
 import { writeClient } from "../../sanity/lib/write-client";
-import { sanityFetch } from "../../sanity/lib/live";
 import { USER_BY_CLERK_ID_QUERY } from "../../sanity/lib/queries";
 
 export interface UserSettingsPayload {
@@ -23,13 +22,12 @@ export interface UserSettingsPayload {
 }
 
 export async function upsertUserSettings(payload: UserSettingsPayload) {
-  const { data: existing } = await sanityFetch({
-    query: USER_BY_CLERK_ID_QUERY,
-    params: { clerkId: payload.clerkId },
+  // Use writeClient directly for both read and write — avoids defineLive auth requirements
+  const existing = await writeClient.fetch(USER_BY_CLERK_ID_QUERY, {
+    clerkId: payload.clerkId,
   });
 
   if (existing?._id) {
-    // Patch existing document
     await writeClient
       .patch(existing._id)
       .set({
@@ -40,7 +38,6 @@ export async function upsertUserSettings(payload: UserSettingsPayload) {
       })
       .commit();
   } else {
-    // Create new user document
     await writeClient.create({
       _type: "user",
       userId: payload.clerkId,

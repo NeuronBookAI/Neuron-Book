@@ -2,7 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "../../src/components/Sidebar";
 import { mockSidebarItems } from "../../src/data/mock";
-import { sanityFetch } from "../../sanity/lib/live";
+import { writeClient } from "../../sanity/lib/write-client";
 import { USER_BY_CLERK_ID_QUERY } from "../../sanity/lib/queries";
 import SettingsForm from "./SettingsForm";
 
@@ -14,10 +14,7 @@ export default async function Settings() {
   const clerkName = user.fullName ?? user.username ?? "User";
   const clerkEmail = user.primaryEmailAddress?.emailAddress ?? "";
 
-  const { data: sanityUser } = await sanityFetch({
-    query: USER_BY_CLERK_ID_QUERY,
-    params: { clerkId },
-  });
+  const sanityUser = await writeClient.fetch(USER_BY_CLERK_ID_QUERY, { clerkId });
 
   return (
     <div className="min-h-screen glass-bg">
