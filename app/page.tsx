@@ -32,12 +32,12 @@ export default function LandingPage() {
         </div>
         <div className="flex items-center gap-3">
           <SignedOut>
-            <SignInButton mode="modal">
+            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
               <button className="text-sm font-medium text-gray-300 hover:text-white px-4 py-2 rounded-full border border-white/10 hover:border-white/30 transition-all">
                 Sign in
               </button>
             </SignInButton>
-            <SignUpButton mode="modal">
+            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
               <button className="text-sm font-bold bg-teal-400 hover:bg-teal-300 text-[#0a0f12] px-5 py-2 rounded-full transition-all">
                 Get started
               </button>
@@ -69,7 +69,7 @@ export default function LandingPage() {
           the world&apos;s first metacognitive learning engine.
         </p>
         <SignedOut>
-          <SignUpButton mode="modal">
+          <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
             <button className="bg-teal-400 hover:bg-teal-300 text-[#0a0f12] px-8 py-3 rounded-full font-bold transition-all inline-flex items-center gap-2 group">
               Get started{" "}
               <ArrowRight
