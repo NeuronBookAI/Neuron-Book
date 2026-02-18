@@ -75,6 +75,7 @@ export const NEURONS_WITH_MASTERY_QUERY = defineQuery(`
     masteryLevel,
     synapses[]->{ _id, title, masteryLevel },
     "mastery": *[_type == "mastery" && references(^._id)][0] {
+      _id,
       srs { lastReviewed, nextReviewDate, confidence, interval }
     },
     "textbook": *[_type == "textbook" && references(^._id)][0] {
