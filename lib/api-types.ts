@@ -39,6 +39,6 @@ export interface SubmitAnswerResponse {
   evaluation: string;
   concepts: string[];
   enrichment?: ConceptEnrichment[];
-  success?: boolean;           // NEW: From Sanity save
-  documentId?: string;         // NEW: Sanity document ID
+  success?: boolean;           // From Sanity save
+  documentId?: string;         // Sanity document ID
 }

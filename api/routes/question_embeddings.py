@@ -36,7 +36,6 @@ def generate_enhanced():
         if use_embeddings:
             pdf_context_result = get_pdf_context(page_number, selected_text, top_k=3)
 
-        # Call teammate's original endpoint
         original_response = requests.post(
             "http://localhost:5328/api/question/generate",
             json=data,

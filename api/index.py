@@ -4,7 +4,6 @@ from flask_cors import CORS
 # Import your LangGraph
 from socratic_questions import socratic_questions
 
-# Import teammate's blueprints
 from routes.question import bp as question_bp
 from routes.answer import bp as answer_bp
 from routes.health import bp as health_bp
@@ -14,14 +13,12 @@ from routes.answer_sanity import bp as answer_sanity_bp
 app = Flask(__name__)
 CORS(app)
 
-# Register teammate's blueprints
 app.register_blueprint(question_bp)
 app.register_blueprint(answer_bp)
 app.register_blueprint(health_bp)
 app.register_blueprint(question_embeddings_bp)
 app.register_blueprint(answer_sanity_bp)
 
-# Your original route (keep for backward compatibility)
 @app.route("/api/socratic", methods=["POST"])
 def run_tutor():
     try:
