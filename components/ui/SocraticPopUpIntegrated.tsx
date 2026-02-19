@@ -9,6 +9,8 @@ import {
   ChevronUp,
   Sparkles,
   BookOpen,
+  Brain,
+  ArrowRight,
 } from "lucide-react";
 
 interface ReaderEvent {
@@ -29,6 +31,9 @@ interface SubmitResult {
   evaluation: string;
   concepts: string[];
   enrichment: Array<{ concept: string; summary: string }>;
+  neuronId?: string;
+  neuronTitle?: string;
+  neuronMastery?: number;
 }
 
 const CONFIDENCE_OPTIONS = [
@@ -137,6 +142,8 @@ export default function SocraticPopUpIntegrated({
     return () => controller.abort();
   }, [loadQuestion]);
 
+  const handleRefresh = useCallback(() => loadQuestion(), [loadQuestion]);
+
   const handleSubmit = async () => {
     if (submittingRef.current) return;
 
@@ -197,10 +204,31 @@ export default function SocraticPopUpIntegrated({
         submitData = await evalRes.json();
       }
 
+      // Create a neuron for this answer in parallel with eval
+      let neuronData: { neuronId?: string; neuronTitle?: string; neuronMastery?: number } = {};
+      try {
+        const neuronRes = await fetch("/api/answer/create-neuron", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedText: event.selectedText,
+            question,
+            confidenceScore: option.score,
+          }),
+        });
+        if (neuronRes.ok) {
+          const n = await neuronRes.json();
+          neuronData = { neuronId: n.neuronId, neuronTitle: n.title, neuronMastery: n.masteryLevel };
+        }
+      } catch {
+        // Neuron creation is non-fatal
+      }
+
       setResult({
         evaluation: submitData.evaluation ?? "Answer saved to your Neural Trace.",
         concepts: submitData.concepts ?? [],
         enrichment: submitData.enrichment ?? [],
+        ...neuronData,
       });
       setPhase("success");
       onAnswerSubmitted?.();
@@ -235,7 +263,7 @@ export default function SocraticPopUpIntegrated({
       <div className="flex flex-col gap-4 p-6 h-full">
         <Header
           onClose={onClose}
-          onRefresh={loadQuestion}
+          onRefresh={handleRefresh}
           showRefresh={false}
         />
         <SelectedTextBadge />
@@ -251,7 +279,7 @@ export default function SocraticPopUpIntegrated({
   if (phase === "error") {
     return (
       <div className="flex flex-col gap-4 p-6 h-full">
-        <Header onClose={onClose} onRefresh={loadQuestion} showRefresh />
+        <Header onClose={onClose} onRefresh={handleRefresh} showRefresh />
         <SelectedTextBadge />
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-400/20 flex items-center justify-center">
@@ -259,7 +287,7 @@ export default function SocraticPopUpIntegrated({
           </div>
           <p className="text-sm text-red-400">{errorMessage}</p>
           <button
-            onClick={loadQuestion}
+            onClick={handleRefresh}
             className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300 hover:border-teal-400/40 hover:text-white transition-colors"
           >
             <RefreshCw size={14} /> Try again
@@ -273,7 +301,7 @@ export default function SocraticPopUpIntegrated({
   if (phase === "success" && result) {
     return (
       <div className="flex flex-col gap-4 p-6 h-full overflow-y-auto">
-        <Header onClose={onClose} onRefresh={loadQuestion} showRefresh />
+        <Header onClose={onClose} onRefresh={handleRefresh} showRefresh />
         <SelectedTextBadge />
 
         {/* Saved banner */}
@@ -283,6 +311,38 @@ export default function SocraticPopUpIntegrated({
             Answer saved to your Neural Trace
           </p>
         </div>
+
+        {/* Neuron created card */}
+        {result.neuronTitle && (
+          <a
+            href="/network"
+            className="group flex items-center gap-3 rounded-xl border border-purple-400/30 bg-purple-500/10 px-4 py-3 hover:border-purple-400/60 transition-colors"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/20">
+              <Brain size={15} className="text-purple-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-purple-300 mb-0.5">
+                New Neuron Created
+              </p>
+              <p className="text-xs text-gray-400 truncate">{result.neuronTitle}</p>
+              {result.neuronMastery != null && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="flex-1 h-1 rounded-full bg-white/10">
+                    <div
+                      className="h-1 rounded-full bg-gradient-to-r from-purple-500 to-teal-400 transition-all"
+                      style={{ width: `${result.neuronMastery}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-gray-500">
+                    {result.neuronMastery}% mastery
+                  </span>
+                </div>
+              )}
+            </div>
+            <ArrowRight size={13} className="shrink-0 text-gray-500 group-hover:text-purple-300 transition-colors" />
+          </a>
+        )}
 
         {/* Evaluation */}
         <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -317,7 +377,7 @@ export default function SocraticPopUpIntegrated({
         )}
 
         <button
-          onClick={loadQuestion}
+          onClick={handleRefresh}
           className="mt-auto w-full rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-gray-300 hover:border-teal-400/40 hover:text-white transition-colors"
         >
           Ask another question
@@ -331,7 +391,7 @@ export default function SocraticPopUpIntegrated({
     <div className="flex flex-col gap-4 p-6 h-full overflow-y-auto">
       <Header
         onClose={onClose}
-        onRefresh={loadQuestion}
+        onRefresh={handleRefresh}
         showRefresh={phase === "ready"}
       />
       <SelectedTextBadge />
