@@ -18,7 +18,7 @@ except ImportError:
     )
 
 
-def express_ask(prompt: str, timeout: int = 25) -> str | None:
+def express_ask(prompt: str, timeout: int = 25):
     """
     Call You.com Express API (LLM). Returns the agent's text answer or None on error.
     Uses same API key as search; auth is Bearer for Express.
@@ -51,7 +51,7 @@ def express_ask(prompt: str, timeout: int = 25) -> str | None:
         return None
 
 
-def search(query: str, count: int = 3) -> list[dict]:
+def search(query: str, count: int = 3):
     """
     Call You.com search; return list of items with title, description, snippets.
     Returns [] if no API key or on error.

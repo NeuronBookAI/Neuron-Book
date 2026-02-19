@@ -12,6 +12,7 @@ import { structureTool } from "sanity/structure";
 import { apiVersion, dataset, projectId } from "./sanity/env";
 import { schemaTypes } from "./sanity/schemaTypes";
 import { structure } from "./sanity/structure";
+import { embeddingsIndexDashboard } from '@sanity/embeddings-index-ui'; //for sanity embeddings
 
 export default defineConfig({
   basePath: "/studio",
@@ -26,5 +27,6 @@ export default defineConfig({
     // Vision is for querying with GROQ from inside the Studio
     // https://www.sanity.io/docs/the-vision-plugin
     visionTool({ defaultApiVersion: apiVersion }),
+    embeddingsIndexDashboard(),
   ],
 });

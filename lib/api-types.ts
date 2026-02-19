@@ -12,6 +12,8 @@ export interface GenerateQuestionResponse {
   question: string;
   concepts: string[];
   anchor: { pageNumber: number };
+  embeddingsUsed?: boolean;  // NEW: From enhanced endpoint
+  pdfContext?: string;         // NEW: Related pages from embeddings
 }
 
 export type Difficulty = "easy" | "medium" | "hard";
@@ -37,4 +39,6 @@ export interface SubmitAnswerResponse {
   evaluation: string;
   concepts: string[];
   enrichment?: ConceptEnrichment[];
+  success?: boolean;           // NEW: From Sanity save
+  documentId?: string;         // NEW: Sanity document ID
 }
