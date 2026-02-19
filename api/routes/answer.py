@@ -3,8 +3,12 @@ POST /api/answer/submit — Evaluate answer and enrich concepts via You.com.
 """
 from flask import Blueprint, request, jsonify
 
-from services.concepts import extract_concepts
-from services.you_com import search as you_com_search
+try:
+    from services.concepts import extract_concepts
+    from services.you_com import search as you_com_search
+except ImportError:
+    from api.services.concepts import extract_concepts
+    from api.services.you_com import search as you_com_search
 
 bp = Blueprint("answer", __name__, url_prefix="/api/answer")
 

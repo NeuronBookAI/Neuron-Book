@@ -1,11 +1,18 @@
 "use client";
 
+/**
+ * Reader page — part of the main app (dashboard) frontend.
+ * Accepts ?url and ?title search params to open a specific Sanity PDF.
+ * Falls back to NEXT_PUBLIC_SAMPLE_PDF_URL or the bundled sample PDF.
+ * Backend: Flask /api/question/generate and /api/answer/submit (Foxit + You.com).
+ */
+import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import { FoxitPdfViewer } from "@/components/foxit-pdf-viewer";
 import SocraticPopUpIntegrated from "@/components/ui/SocraticPopUpIntegrated";
 import type { ReaderEvent } from "@/components/foxit-pdf-viewer";
 
-const SAMPLE_PDF_URL =
+const FALLBACK_PDF_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SAMPLE_PDF_URL) || "/Lecture1_modified_JG.pdf";
 
 export default function ReaderPage() {
