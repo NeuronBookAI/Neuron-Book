@@ -343,15 +343,10 @@ export function FoxitPdfViewer({
     );
   }
 
-  // iframe: cross-origin fallback when Foxit is unavailable
+  // iframe: cross-origin fallback when Foxit is unavailable (no warning — silent fallback)
   if (mode === "iframe") {
     return (
       <div className="flex h-full w-full flex-col gap-2">
-        {foxitError && (
-          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400 border border-amber-500/20">
-            Foxit viewer unavailable: {foxitError} — using browser PDF viewer as fallback.
-          </p>
-        )}
         <iframe
           ref={iframeRef}
           src={resolveUrl(pdfUrl)}
