@@ -1,16 +1,20 @@
 "use client";
 
 import { useRef, useState, useTransition, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { X, Upload, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import { uploadTextbook } from "../../app/actions/upload";
 
 interface Props {
   onClose: () => void;
+  folderId?: string | null;
+  folderName?: string | null;
 }
 
 type Stage = "idle" | "uploading" | "done" | "error";
 
-export default function UploadModal({ onClose }: Props) {
+export default function UploadModal({ onClose, folderId, folderName }: Props) {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -26,7 +30,6 @@ export default function UploadModal({ onClose }: Props) {
       return;
     }
     setFile(f);
-    // Auto-fill title from filename (strip extension)
     if (!title) setTitle(f.name.replace(/\.pdf$/i, "").replace(/[-_]/g, " "));
     setStage("idle");
     setErrorMsg("");
@@ -48,11 +51,13 @@ export default function UploadModal({ onClose }: Props) {
     const formData = new FormData();
     formData.set("file", file);
     formData.set("title", title.trim());
+    if (folderId) formData.set("folderId", folderId);
     startTransition(async () => {
       const result = await uploadTextbook(formData);
-      if (result.success) {
+      if (result.success && result.fileUrl) {
         setStage("done");
-        setTimeout(onClose, 1500);
+        const readerUrl = `/reader?url=${encodeURIComponent(result.fileUrl)}&title=${encodeURIComponent(result.title ?? title.trim())}`;
+        setTimeout(() => router.push(readerUrl), 900);
       } else {
         setErrorMsg(result.error ?? "Upload failed");
         setStage("error");
@@ -65,7 +70,12 @@ export default function UploadModal({ onClose }: Props) {
       <div className="glass-panel rounded-2xl border border-white/10 p-6 w-full max-w-md mx-4 flex flex-col gap-5">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-semibold text-lg">Add Textbook</h2>
+          <div>
+            <h2 className="text-white font-semibold text-lg">Add Textbook</h2>
+            {folderName && (
+              <p className="text-gray-500 text-xs mt-0.5">to <span className="text-teal-400">{folderName}</span></p>
+            )}
+          </div>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
             <X size={18} />
           </button>
@@ -74,7 +84,7 @@ export default function UploadModal({ onClose }: Props) {
         {stage === "done" ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <CheckCircle size={40} className="text-teal-400" />
-            <p className="text-white font-medium">Uploaded successfully!</p>
+            <p className="text-white font-medium">Uploaded! Opening reader…</p>
           </div>
         ) : (
           <>
@@ -147,7 +157,7 @@ export default function UploadModal({ onClose }: Props) {
                 disabled={!file || !title.trim() || isPending || stage === "uploading"}
                 className="flex-1 bg-teal-400 hover:bg-teal-300 disabled:opacity-40 text-[#0a0f12] px-4 py-2.5 rounded-xl font-semibold text-sm transition-all"
               >
-                {stage === "uploading" || isPending ? "Uploading…" : "Upload"}
+                {stage === "uploading" || isPending ? "Uploading…" : "Upload & Open"}
               </button>
             </div>
           </>

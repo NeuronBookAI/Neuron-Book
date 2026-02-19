@@ -8,6 +8,8 @@ import { getOrCreateSanityUser } from "../../lib/sanity-user";
 export interface UploadTextbookResult {
   success: boolean;
   textbookId?: string;
+  fileUrl?: string;
+  title?: string;
   error?: string;
 }
 
@@ -54,7 +56,7 @@ export async function uploadTextbook(formData: FormData): Promise<UploadTextbook
     const created = await writeClient.create(doc);
     revalidatePath("/library");
     revalidatePath("/dashboard");
-    return { success: true, textbookId: created._id };
+    return { success: true, textbookId: created._id, fileUrl: asset.url, title };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Upload failed";
     return { success: false, error: msg };
