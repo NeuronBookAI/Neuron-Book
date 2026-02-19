@@ -8,9 +8,14 @@
  */
 import { useCallback, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { FoxitPdfViewer } from "@/components/foxit-pdf-viewer";
+import dynamic from "next/dynamic";
 import SocraticPopUpIntegrated from "@/components/ui/SocraticPopUpIntegrated";
 import type { ReaderEvent } from "@/components/foxit-pdf-viewer";
+
+const FoxitPdfViewer = dynamic(
+  () => import("@/components/foxit-pdf-viewer").then((m) => m.FoxitPdfViewer),
+  { ssr: false }
+);
 import { Sidebar } from "@/src/components/Sidebar";
 import { mockSidebarItems } from "@/src/data/mock";
 
