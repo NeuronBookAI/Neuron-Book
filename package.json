@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "flask-dev": "cd api && .venv/bin/python -m flask --app index run -p 5328",
-    "next-dev": "NODE_OPTIONS='--no-deprecation' next dev",
+    "flask-dev": "node scripts/start-flask.js",
+    "next-dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "dev": "concurrently \"npm run next-dev\" \"npm run flask-dev\"",
     "build": "next build --webpack",
     "start": "next start",
@@ -32,6 +32,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
