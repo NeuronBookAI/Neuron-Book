@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, RefreshCw, ChevronDown, ChevronUp, Sparkles, BookOpen } from 'lucide-react';
 
 interface ReaderEvent {
   pdfId: string;
@@ -13,23 +14,71 @@ interface SocraticPopUpIntegratedProps {
   onAnswerSubmitted?: () => void;
 }
 
+type Phase = 'loading' | 'ready' | 'submitting' | 'success' | 'error';
+
+interface SubmitResult {
+  evaluation: string;
+  concepts: string[];
+  enrichment: Array<{ concept: string; summary: string }>;
+}
+
+const CONFIDENCE_OPTIONS = [
+  {
+    id: 'instantly',
+    label: 'Got it instantly',
+    score: 5,
+    difficulty: 'easy',
+    activeClass: 'bg-teal-500/20 border-teal-400/60 text-teal-300',
+    idleClass: 'border-white/10 text-gray-400 hover:border-teal-400/30 hover:text-teal-300',
+    dot: 'bg-teal-400',
+  },
+  {
+    id: 'thought',
+    label: 'Took some thought',
+    score: 3,
+    difficulty: 'medium',
+    activeClass: 'bg-yellow-500/20 border-yellow-400/60 text-yellow-300',
+    idleClass: 'border-white/10 text-gray-400 hover:border-yellow-400/30 hover:text-yellow-300',
+    dot: 'bg-yellow-400',
+  },
+  {
+    id: 'review',
+    label: 'Need to review',
+    score: 1,
+    difficulty: 'hard',
+    activeClass: 'bg-red-500/20 border-red-400/60 text-red-300',
+    idleClass: 'border-white/10 text-gray-400 hover:border-red-400/30 hover:text-red-300',
+    dot: 'bg-red-400',
+  },
+] as const;
+
+type ConfidenceId = typeof CONFIDENCE_OPTIONS[number]['id'];
+
 export default function SocraticPopUpIntegrated({
   event,
   onClose,
-  onAnswerSubmitted
+  onAnswerSubmitted,
 }: SocraticPopUpIntegratedProps) {
-  const [answer, setAnswer] = useState("");
-  const [confidence, setConfidence] = useState<string>("");
-  const [question, setQuestion] = useState("Loading question...");
+  const [phase, setPhase] = useState<Phase>('loading');
+  const [question, setQuestion] = useState('');
   const [pdfContext, setPdfContext] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [showContext, setShowContext] = useState(false);
+  const [answer, setAnswer] = useState('');
+  const [confidence, setConfidence] = useState<ConfidenceId | ''>('');
+  const [validationError, setValidationError] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [result, setResult] = useState<SubmitResult | null>(null);
 
-  useEffect(() => {
-    loadQuestion();
-  }, [event]);
+  const loadQuestion = useCallback(async () => {
+    setPhase('loading');
+    setQuestion('');
+    setPdfContext([]);
+    setAnswer('');
+    setConfidence('');
+    setValidationError('');
+    setErrorMessage('');
+    setResult(null);
 
-  const loadQuestion = async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/question/enhanced', {
         method: 'POST',
@@ -37,163 +86,328 @@ export default function SocraticPopUpIntegrated({
         body: JSON.stringify({
           pdfId: event.pdfId,
           pageNumber: event.pageNumber,
-          selectedText: event.selectedText || ""
-        })
+          selectedText: event.selectedText || '',
+        }),
       });
-      
+
       const data = await res.json();
-      console.log('Question response:', data);
-      
-      if (data.question) {
-        setQuestion(data.question);
+
+      if (!res.ok || !data.question) {
+        throw new Error(data.error || 'No question returned');
       }
-      
+
+      setQuestion(data.question);
+
       if (data.pdfContext && data.embeddingsUsed) {
-        const contextLines = data.pdfContext.split('\n---\n');
-        setPdfContext(contextLines);
+        setPdfContext(data.pdfContext.split('\n---\n').filter(Boolean));
       }
-    } catch (error) {
-      console.error('Failed to load question:', error);
-      setQuestion("Error loading question. Please try again.");
-    } finally {
-      setLoading(false);
+
+      setPhase('ready');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to load question');
+      setPhase('error');
     }
-  };
+  }, [event]);
+
+  // Reload whenever the event changes
+  useEffect(() => {
+    loadQuestion();
+  }, [loadQuestion]);
 
   const handleSubmit = async () => {
     if (!answer.trim()) {
-      alert("Please write an answer before submitting!");
+      setValidationError('Please write an answer before submitting.');
       return;
     }
-
     if (!confidence) {
-      alert("Please select a confidence level!");
+      setValidationError('Please select a confidence level.');
       return;
     }
+    setValidationError('');
+    setPhase('submitting');
 
-    setLoading(true);
-    
+    const option = CONFIDENCE_OPTIONS.find((o) => o.id === confidence)!;
+
     try {
-      const confidenceMap: Record<string, number> = {
-        'instantly': 5,
-        'thought': 3,
-        'review': 1
-      };
+      const [saveRes, evalRes] = await Promise.allSettled([
+        fetch('/api/answer/save-to-sanity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pdfId: event.pdfId,
+            pageNumber: event.pageNumber,
+            selectedText: event.selectedText,
+            question,
+            answer,
+            confidenceScore: option.score,
+            pdfContext: pdfContext.join('\n---\n'),
+          }),
+        }),
+        fetch('/api/answer/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pdfId: event.pdfId,
+            pageNumber: event.pageNumber,
+            selectedText: event.selectedText,
+            question,
+            answer,
+            difficulty: option.difficulty,
+          }),
+        }),
+      ]);
 
-      const res = await fetch('/api/answer/save-to-sanity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pdfId: event.pdfId,
-          pageNumber: event.pageNumber,
-          selectedText: event.selectedText,
-          question: question,
-          answer: answer,
-          confidenceScore: confidenceMap[confidence],
-          pdfContext: pdfContext.join('\n---\n')
-        })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok && data.success) {
-        alert('Answer saved successfully to Sanity!');
-        setAnswer("");
-        setConfidence("");
-        onAnswerSubmitted?.();
-      } else {
-        alert(`Save failed: ${data.error || 'Unknown error'}`);
+      // Surface a save error if it occurred
+      if (saveRes.status === 'rejected') {
+        throw new Error('Could not save your answer. Please try again.');
       }
-    } catch (error) {
-      console.error('Submit error:', error);
-      alert(`Error: ${error}`);
-    } finally {
-      setLoading(false);
+      const saveData = await (saveRes.value as Response).json();
+      if (!saveData.success) {
+        throw new Error(saveData.error || 'Save failed');
+      }
+
+      // Enrich with evaluation if available
+      let submitData: Partial<SubmitResult> = {};
+      if (evalRes.status === 'fulfilled' && (evalRes.value as Response).ok) {
+        submitData = await (evalRes.value as Response).json();
+      }
+
+      setResult({
+        evaluation: submitData.evaluation ?? 'Answer saved to your Neural Trace.',
+        concepts: submitData.concepts ?? [],
+        enrichment: submitData.enrichment ?? [],
+      });
+      setPhase('success');
+      onAnswerSubmitted?.();
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Submission failed');
+      setPhase('error');
     }
   };
 
-  return (
-    <div className="p-6 bg-[#1a1c1e] text-white min-h-full">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-xl font-bold">Socratic Question</h3>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-white text-xl"
-        >
-          ✕
-        </button>
-      </div>
-      
-      <p className="text-xs text-gray-500 mb-4">
-        Page {event.pageNumber}
-        {event.selectedText && (
-          <span className="block mt-1 text-gray-400">
-            "{event.selectedText.slice(0, 60)}..."
-          </span>
-        )}
-      </p>
-      
-      <div className="mb-4 p-4 bg-[#2c2e33] rounded-lg">
-        <p className="text-sm leading-relaxed">
-          {loading ? "Loading question..." : question}
+  // ── Render helpers ────────────────────────────────────────────────────────
+
+  const SelectedTextBadge = () =>
+    event.selectedText ? (
+      <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+        <BookOpen size={13} className="mt-0.5 shrink-0 text-gray-500" />
+        <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">
+          &ldquo;{event.selectedText.slice(0, 120)}{event.selectedText.length > 120 ? '…' : ''}&rdquo;
         </p>
       </div>
-      
-      <textarea 
-        className="w-full h-24 p-3 bg-[#2c2e33] rounded-lg text-sm border border-gray-600 focus:border-blue-500 outline-none mb-4 text-white placeholder-gray-400"
-        placeholder="Type your answer here..."
-        value={answer}
-        onChange={(e) => setAnswer(e.target.value)}
-        disabled={loading}
-      />
+    ) : (
+      <p className="text-xs text-gray-500">Page {event.pageNumber} — no selection</p>
+    );
 
-      <p className="text-center text-sm font-semibold mb-3">Confidence Check</p>
-      
-      <div className="flex flex-col gap-2 mb-4">
-        <button 
-          onClick={() => setConfidence('instantly')}
-          className={`py-3 px-4 rounded-lg text-sm font-medium transition-all ${
-            confidence === 'instantly' 
-              ? 'bg-teal-600 ring-2 ring-teal-400' 
-              : 'bg-teal-700 hover:bg-teal-600'
-          }`}
-          disabled={loading}
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (phase === 'loading') {
+    return (
+      <div className="flex flex-col gap-4 p-6 h-full">
+        <Header onClose={onClose} onRefresh={loadQuestion} showRefresh={false} />
+        <SelectedTextBadge />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-400 border-t-transparent" />
+          <p className="text-sm text-gray-400">Generating question…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error ─────────────────────────────────────────────────────────────────
+  if (phase === 'error') {
+    return (
+      <div className="flex flex-col gap-4 p-6 h-full">
+        <Header onClose={onClose} onRefresh={loadQuestion} showRefresh />
+        <SelectedTextBadge />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-400/20 flex items-center justify-center">
+            <span className="text-xl">⚠️</span>
+          </div>
+          <p className="text-sm text-red-400">{errorMessage}</p>
+          <button
+            onClick={loadQuestion}
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300 hover:border-teal-400/40 hover:text-white transition-colors"
+          >
+            <RefreshCw size={14} /> Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Success ───────────────────────────────────────────────────────────────
+  if (phase === 'success' && result) {
+    return (
+      <div className="flex flex-col gap-4 p-6 h-full overflow-y-auto">
+        <Header onClose={onClose} onRefresh={loadQuestion} showRefresh />
+        <SelectedTextBadge />
+
+        {/* Saved banner */}
+        <div className="flex items-center gap-2 rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-3">
+          <Sparkles size={15} className="shrink-0 text-teal-400" />
+          <p className="text-sm text-teal-300 font-medium">Answer saved to your Neural Trace</p>
+        </div>
+
+        {/* Evaluation */}
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <p className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Feedback</p>
+          <p className="text-sm text-gray-300 leading-relaxed">{result.evaluation}</p>
+        </div>
+
+        {/* Enrichment concepts */}
+        {result.enrichment.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Key Concepts</p>
+            {result.enrichment.map((e) => (
+              <div key={e.concept} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-xs font-medium text-teal-400 mb-1">{e.concept}</p>
+                <p className="text-xs text-gray-400 leading-relaxed line-clamp-3">{e.summary}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={loadQuestion}
+          className="mt-auto w-full rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-gray-300 hover:border-teal-400/40 hover:text-white transition-colors"
         >
-          Got it instantly
-        </button>
-        
-        <button 
-          onClick={() => setConfidence('thought')}
-          className={`py-3 px-4 rounded-lg text-sm font-medium transition-all ${
-            confidence === 'thought' 
-              ? 'bg-yellow-600 ring-2 ring-yellow-400' 
-              : 'bg-yellow-700 hover:bg-yellow-600'
-          }`}
-          disabled={loading}
-        >
-          Took some thought
-        </button>
-        
-        <button 
-          onClick={() => setConfidence('review')}
-          className={`py-3 px-4 rounded-lg text-sm font-medium transition-all ${
-            confidence === 'review' 
-              ? 'bg-red-600 ring-2 ring-red-400' 
-              : 'bg-red-700 hover:bg-red-600'
-          }`}
-          disabled={loading}
-        >
-          Review This
+          Ask another question
         </button>
       </div>
+    );
+  }
 
-      <button 
+  // ── Ready / Submitting ────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-4 p-6 h-full overflow-y-auto">
+      <Header onClose={onClose} onRefresh={loadQuestion} showRefresh={phase === 'ready'} />
+      <SelectedTextBadge />
+
+      {/* Question box */}
+      <div className="rounded-xl border border-white/10 bg-gradient-to-br from-teal-500/5 to-purple-500/5 p-4">
+        <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Question</p>
+        <p className="text-sm text-white leading-relaxed">{question}</p>
+      </div>
+
+      {/* PDF context (collapsible) */}
+      {pdfContext.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowContext((v) => !v)}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            {showContext ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {showContext ? 'Hide' : 'Show'} related context ({pdfContext.length})
+          </button>
+          {showContext && (
+            <div className="mt-2 flex flex-col gap-2 max-h-36 overflow-y-auto rounded-xl border border-white/10 bg-white/5 p-3">
+              {pdfContext.map((ctx, i) => (
+                <p key={i} className="text-xs text-gray-400 leading-relaxed border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                  {ctx.trim()}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Answer textarea */}
+      <div>
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+          Your Answer
+        </label>
+        <textarea
+          className="w-full h-28 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-teal-400/50 transition-colors disabled:opacity-50"
+          placeholder="Explain your thinking…"
+          value={answer}
+          onChange={(e) => { setAnswer(e.target.value); setValidationError(''); }}
+          disabled={phase === 'submitting'}
+        />
+      </div>
+
+      {/* Confidence selector */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Confidence</p>
+        <div className="flex flex-col gap-1.5">
+          {CONFIDENCE_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => { setConfidence(opt.id); setValidationError(''); }}
+              disabled={phase === 'submitting'}
+              className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all disabled:opacity-50 ${
+                confidence === opt.id ? opt.activeClass : opt.idleClass
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full shrink-0 ${opt.dot}`} />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Validation error */}
+      {validationError && (
+        <p className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          {validationError}
+        </p>
+      )}
+
+      {/* Submit button */}
+      <button
         onClick={handleSubmit}
-        className="w-full bg-teal-600 hover:bg-teal-700 py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        disabled={loading || !answer.trim() || !confidence}
+        disabled={phase === 'submitting'}
+        className="w-full rounded-xl bg-teal-500 py-3 text-sm font-semibold text-white hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? 'Saving...' : 'Submit Answer'}
+        {phase === 'submitting' ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            Saving…
+          </span>
+        ) : (
+          'Submit Answer'
+        )}
       </button>
+    </div>
+  );
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+function Header({
+  onClose,
+  onRefresh,
+  showRefresh,
+}: {
+  onClose: () => void;
+  onRefresh: () => void;
+  showRefresh: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-teal-500/30 to-purple-500/30 flex items-center justify-center">
+          <span className="text-xs">🧠</span>
+        </div>
+        <h3 className="text-sm font-semibold text-white">Socratic Question</h3>
+      </div>
+      <div className="flex items-center gap-1">
+        {showRefresh && (
+          <button
+            onClick={onRefresh}
+            title="New question"
+            className="rounded-lg p-1.5 text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-colors"
+          >
+            <RefreshCw size={14} />
+          </button>
+        )}
+        <button
+          onClick={onClose}
+          title="Close"
+          className="rounded-lg p-1.5 text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-colors"
+        >
+          <X size={14} />
+        </button>
+      </div>
     </div>
   );
 }

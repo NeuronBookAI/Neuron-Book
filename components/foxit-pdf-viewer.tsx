@@ -242,12 +242,12 @@ export function FoxitPdfViewer({
         placeholder="Optional: paste or type selected text for a targeted question"
         value={contextText}
         onChange={(e) => setContextText(e.target.value)}
-        className="flex-1 min-w-[200px] rounded border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground"
+        className="flex-1 min-w-[200px] rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-teal-400/50"
       />
       <button
         type="button"
         onClick={() => void handleRequestQuestion()}
-        className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 shrink-0"
+        className="rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400 transition-colors shrink-0"
       >
         Request question
       </button>
@@ -258,10 +258,10 @@ export function FoxitPdfViewer({
 
   if (mode === "foxit-loading") {
     return (
-      <div className="flex h-full min-h-[500px] items-center justify-center rounded-lg border border-border bg-muted/30">
+      <div className="flex h-full min-h-[500px] items-center justify-center rounded-2xl border border-white/10 bg-white/5">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading PDF viewer…</p>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-teal-400 border-t-transparent" />
+          <p className="text-sm text-gray-400">Loading PDF viewer…</p>
         </div>
       </div>
     );
@@ -273,7 +273,7 @@ export function FoxitPdfViewer({
       <div className="flex h-full w-full flex-col gap-2">
         <div
           ref={pdfContainerRef}
-          className="flex-1 min-h-[400px] overflow-auto rounded-lg border border-border bg-[#525659]"
+          className="flex-1 min-h-[400px] overflow-auto rounded-2xl border border-white/10 bg-[#525659]"
         >
           <Document
             file={resolveUrl(pdfUrl)}
@@ -294,7 +294,7 @@ export function FoxitPdfViewer({
           </Document>
         </div>
         {foxitError && (
-          <p className="rounded bg-amber-500/10 px-3 py-2 text-xs text-amber-500">{foxitError}</p>
+          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400 border border-amber-500/20">{foxitError}</p>
         )}
         {/* Pagination */}
         <div className="flex items-center gap-2 shrink-0">
@@ -302,23 +302,23 @@ export function FoxitPdfViewer({
             type="button"
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
-            className="rounded border border-input bg-background px-2 py-1 text-sm disabled:opacity-40"
+            className="rounded-lg border border-white/20 bg-white/5 px-3 py-1 text-sm text-white disabled:opacity-40 hover:bg-white/10 transition-colors"
           >
             ← Prev
           </button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-gray-400">
             Page {currentPage}{numPages != null ? ` of ${numPages}` : ""}
           </span>
           <button
             type="button"
             onClick={() => setCurrentPage((p) => Math.min(numPages ?? p, p + 1))}
             disabled={numPages != null && currentPage >= numPages}
-            className="rounded border border-input bg-background px-2 py-1 text-sm disabled:opacity-40"
+            className="rounded-lg border border-white/20 bg-white/5 px-3 py-1 text-sm text-white disabled:opacity-40 hover:bg-white/10 transition-colors"
           >
             Next →
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Select text in the PDF above, then click &quot;Request question&quot; — or paste it in the field.
         </p>
         <QuestionBar />
@@ -333,9 +333,9 @@ export function FoxitPdfViewer({
         <div
           ref={containerRef}
           id={FOXIT_EMBED_DIV_ID}
-          className="h-full min-h-[500px] w-full rounded-lg border border-border"
+          className="h-full min-h-[500px] w-full rounded-2xl border border-white/10"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Highlight text in the PDF, copy it (Ctrl+C), paste in the field below, then click — or just click for a page-level question.
         </p>
         <QuestionBar />
@@ -348,7 +348,7 @@ export function FoxitPdfViewer({
     return (
       <div className="flex h-full w-full flex-col gap-2">
         {foxitError && (
-          <p className="rounded bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
+          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400 border border-amber-500/20">
             Foxit viewer unavailable: {foxitError} — using browser PDF viewer as fallback.
           </p>
         )}
@@ -356,9 +356,9 @@ export function FoxitPdfViewer({
           ref={iframeRef}
           src={resolveUrl(pdfUrl)}
           title="PDF viewer"
-          className="h-full min-h-[500px] w-full rounded-lg border border-border"
+          className="h-full min-h-[500px] w-full rounded-2xl border border-white/10"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500">
           Highlight text in the PDF, paste it in the field below, then click — or just click for a page-level question.
         </p>
         <QuestionBar />
@@ -368,34 +368,34 @@ export function FoxitPdfViewer({
 
   // mock: no pdfUrl
   return (
-    <div className="flex h-full flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+    <div className="flex h-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">Page</label>
+        <label className="text-sm font-medium text-white">Page</label>
         <input
           type="number"
           min={1}
           value={currentPage}
           onChange={(e) => setCurrentPage(Math.max(1, parseInt(e.target.value, 10) || 1))}
-          className="w-20 rounded border border-input bg-background px-2 py-1 text-sm"
+          className="w-20 rounded-lg border border-white/20 bg-white/5 px-2 py-1 text-sm text-white focus:outline-none focus:border-teal-400/50"
         />
         <button
           type="button"
           onClick={handleMockRequest}
-          className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400 transition-colors"
         >
           Request question (from selection)
         </button>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-gray-500">
         No PDF provided. Open a textbook from the{" "}
-        <a href="/library" className="underline">Library</a> to read it here.
+        <a href="/library" className="text-teal-400 hover:underline">Library</a> to read it here.
       </p>
       <div
         ref={mockTextRef}
-        className="min-h-[320px] flex-1 select-text rounded border border-border bg-background p-4 text-sm leading-relaxed"
+        className="min-h-[320px] flex-1 select-text rounded-xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed text-gray-300"
         style={{ userSelect: "text" }}
       >
-        <strong>NeuronBook — Active reading</strong>
+        <strong className="text-white">NeuronBook — Active reading</strong>
         <br /><br />
         Select any text in this area and click &quot;Request question (from selection)&quot; to
         try the Socratic question flow. In a real session, this panel is replaced by your actual
