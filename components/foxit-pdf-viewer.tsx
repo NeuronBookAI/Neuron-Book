@@ -75,6 +75,10 @@ export function FoxitPdfViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const embedViewRef = useRef<FoxitEmbedView | null>(null);
   const lastEmbedSelectionRef = useRef<string>("");
+  /** Selection captured on Request-question button mousedown so the click doesn't clear it */
+  const selectionOnButtonDownRef = useRef<string>("");
+  /** Skip next click when we already ran on mousedown (avoids double request) */
+  const handledByMouseDownRef = useRef(false);
   const mockTextRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pdfContainerRef = useRef<HTMLDivElement>(null);
@@ -186,15 +190,12 @@ export function FoxitPdfViewer({
     [onSelection, onRequestQuestion],
   );
 
-  /** Capture selection: context field → window.getSelection → iframe → clipboard → postMessage cache */
-  const captureSelection = useCallback(async (): Promise<string> => {
-    if (contextText.trim()) return contextText.trim();
-
+  /** Sync capture of selection (for mousedown — before click clears it). */
+  const captureSelectionSync = useCallback((): string => {
     if (typeof window !== "undefined" && window.getSelection) {
       const s = (window.getSelection()?.toString() ?? "").trim();
       if (s) return s;
     }
-
     if (iframeRef.current) {
       try {
         const win = iframeRef.current.contentWindow;
@@ -204,29 +205,61 @@ export function FoxitPdfViewer({
         }
       } catch { /* cross-origin */ }
     }
+    return "";
+  }, []);
 
-    // Clipboard fallback (Foxit embed can't send selection directly)
-    if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
-      try {
-        const clip = (await navigator.clipboard.readText()).trim();
-        if (clip) return clip;
-      } catch { /* permission denied */ }
+  /** Capture selection: ref (from mousedown) → context field → sync selection → clipboard (last, for iframe copy) → postMessage cache */
+  const captureSelection = useCallback(async (): Promise<{ text: string; fromSelection: boolean }> => {
+    if (selectionOnButtonDownRef.current.trim()) {
+      const s = selectionOnButtonDownRef.current.trim();
+      selectionOnButtonDownRef.current = "";
+      return { text: s, fromSelection: true };
     }
+    if (contextText.trim()) return { text: contextText.trim(), fromSelection: false };
+
+    const sync = captureSelectionSync();
+    if (sync) return { text: sync, fromSelection: true };
 
     if (lastEmbedSelectionRef.current) {
       const s = lastEmbedSelectionRef.current;
       lastEmbedSelectionRef.current = "";
-      return s;
+      return { text: s, fromSelection: true };
     }
 
-    return "";
-  }, [contextText]);
+    if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+      try {
+        const clip = (await navigator.clipboard.readText()).trim();
+        if (clip) return { text: clip, fromSelection: false };
+      } catch { /* permission denied */ }
+    }
+
+    return { text: "", fromSelection: false };
+  }, [contextText, captureSelectionSync]);
 
   const handleRequestQuestion = useCallback(async () => {
-    const selected = await captureSelection();
-    if (contextText.trim()) setContextText("");
+    const { text: selected, fromSelection } = await captureSelection();
+    if (fromSelection && selected) setContextText(selected);
+    else if (contextText.trim()) setContextText("");
     emitRequest(currentPage, selected || "");
   }, [captureSelection, contextText, currentPage, emitRequest]);
+
+  const handleRequestQuestionPointerDown = useCallback(
+    (e: React.MouseEvent | React.PointerEvent) => {
+      e.preventDefault();
+      selectionOnButtonDownRef.current = captureSelectionSync();
+      handledByMouseDownRef.current = true;
+      void handleRequestQuestion();
+    },
+    [captureSelectionSync, handleRequestQuestion],
+  );
+
+  const handleRequestQuestionClick = useCallback(() => {
+    if (handledByMouseDownRef.current) {
+      handledByMouseDownRef.current = false;
+      return;
+    }
+    void handleRequestQuestion();
+  }, [handleRequestQuestion]);
 
   const handleMockRequest = useCallback(() => {
     const selected = typeof window !== "undefined"
@@ -234,23 +267,29 @@ export function FoxitPdfViewer({
     emitRequest(currentPage, selected || (mockTextRef.current?.innerText.slice(0, 200) ?? "active learning"));
   }, [currentPage, emitRequest]);
 
-  // ── Shared question bar ───────────────────────────────────────────────────
+  // ── Shared question bar: paste/type context (feature 1) or copy from PDF then paste (feature 2) ──
   const QuestionBar = () => (
-    <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2">
-      <input
-        type="text"
-        placeholder="Optional: paste or type selected text for a targeted question"
+    <div className="flex flex-col gap-2 shrink-0 pt-2">
+      <textarea
+        rows={2}
+        placeholder="Paste or type selected text here for a targeted question (or leave empty for a page-level question)"
         value={contextText}
         onChange={(e) => setContextText(e.target.value)}
-        className="flex-1 min-w-[200px] rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-teal-400/50"
+        className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-teal-400/50 resize-y min-h-[60px]"
       />
-      <button
-        type="button"
-        onClick={() => void handleRequestQuestion()}
-        className="rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400 transition-colors shrink-0"
-      >
-        Request question
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onMouseDown={handleRequestQuestionPointerDown}
+          onClick={handleRequestQuestionClick}
+          className="rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-400 transition-colors shrink-0"
+        >
+          Request question
+        </button>
+        <span className="text-xs text-gray-500">
+          Uses text from the box above, or current selection/clipboard if the box is empty.
+        </span>
+      </div>
     </div>
   );
 
@@ -273,7 +312,8 @@ export function FoxitPdfViewer({
       <div className="flex h-full w-full flex-col gap-2">
         <div
           ref={pdfContainerRef}
-          className="flex-1 min-h-[400px] overflow-auto rounded-2xl border border-white/10 bg-[#525659]"
+          className="flex-1 min-h-[400px] overflow-auto rounded-2xl border border-white/10 bg-[#525659] select-text"
+          style={{ userSelect: "text" }}
         >
           <Document
             file={resolveUrl(pdfUrl)}
@@ -319,7 +359,7 @@ export function FoxitPdfViewer({
           </button>
         </div>
         <p className="text-xs text-gray-500">
-          Select text in the PDF above, then click &quot;Request question&quot; — or paste it in the field.
+          <strong>Two ways to get a question:</strong> (1) Select text in the PDF, copy (Ctrl+C), then paste in the box below. (2) Or paste or type in the box below. Then click Request question.
         </p>
         <QuestionBar />
       </div>
@@ -336,7 +376,7 @@ export function FoxitPdfViewer({
           className="h-full min-h-[500px] w-full rounded-2xl border border-white/10"
         />
         <p className="text-xs text-gray-500">
-          Highlight text in the PDF, copy it (Ctrl+C), paste in the field below, then click — or just click for a page-level question.
+          <strong>Two ways:</strong> (1) Highlight text in the PDF, copy (Ctrl+C), paste in the box below. (2) Or paste or type in the box below. Then click Request question (or click without pasting for a page-level question).
         </p>
         <QuestionBar />
       </div>
@@ -354,7 +394,7 @@ export function FoxitPdfViewer({
           className="h-full min-h-[500px] w-full rounded-2xl border border-white/10"
         />
         <p className="text-xs text-gray-500">
-          Highlight text in the PDF, paste it in the field below, then click — or just click for a page-level question.
+          <strong>Two ways:</strong> (1) Highlight text in the PDF, copy (Ctrl+C), then paste in the box below. (2) Or paste or type in the box below. Then click Request question (or click without pasting for a page-level question).
         </p>
         <QuestionBar />
       </div>
