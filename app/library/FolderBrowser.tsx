@@ -9,9 +9,10 @@
  * - Clicking a textbook opens it in the Reader with the real Sanity CDN URL.
  */
 
-import { useState } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
 import type { SanityFolder, SanityTextbook } from "@/src/types/sanity";
+import { createFolder } from "../actions/folder";
 
 interface FolderBrowserProps {
   folders: SanityFolder[];
@@ -25,6 +26,15 @@ interface Breadcrumb {
 
 export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
   const [stack, setStack] = useState<Breadcrumb[]>([{ id: null, title: "Library" }]);
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [folderError, setFolderError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showNewFolder) inputRef.current?.focus();
+  }, [showNewFolder]);
 
   const currentId = stack[stack.length - 1].id;
 
@@ -59,31 +69,87 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
     setStack((prev) => prev.slice(0, index + 1));
   }
 
+  function handleCreateFolder() {
+    const name = newFolderName.trim();
+    if (!name) { setFolderError("Folder name is required"); return; }
+    setFolderError(null);
+    startTransition(async () => {
+      const result = await createFolder(name, currentId);
+      if (result.success) {
+        setNewFolderName("");
+        setShowNewFolder(false);
+      } else {
+        setFolderError(result.error ?? "Failed to create folder");
+      }
+    });
+  }
+
   const isEmpty = visibleFolders.length === 0 && visibleTextbooks.length === 0;
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-sm mb-6 flex-wrap">
-        {stack.map((crumb, i) => {
-          const isLast = i === stack.length - 1;
-          return (
-            <span key={i} className="flex items-center gap-1">
-              {i > 0 && <span className="text-gray-600">/</span>}
-              {isLast ? (
-                <span className="text-white font-medium">{crumb.title}</span>
-              ) : (
-                <button
-                  onClick={() => goTo(i)}
-                  className="text-teal-400 hover:text-teal-300 transition-colors"
-                >
-                  {crumb.title}
-                </button>
-              )}
-            </span>
-          );
-        })}
-      </nav>
+      {/* Breadcrumbs + New Folder button */}
+      <div className="flex items-center justify-between mb-6">
+        <nav className="flex items-center gap-1 text-sm flex-wrap">
+          {stack.map((crumb, i) => {
+            const isLast = i === stack.length - 1;
+            return (
+              <span key={i} className="flex items-center gap-1">
+                {i > 0 && <span className="text-gray-600">/</span>}
+                {isLast ? (
+                  <span className="text-white font-medium">{crumb.title}</span>
+                ) : (
+                  <button
+                    onClick={() => goTo(i)}
+                    className="text-teal-400 hover:text-teal-300 transition-colors"
+                  >
+                    {crumb.title}
+                  </button>
+                )}
+              </span>
+            );
+          })}
+        </nav>
+
+        <button
+          onClick={() => { setShowNewFolder(true); setFolderError(null); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 hover:border-teal-400/40"
+        >
+          <span>📁</span> New Folder
+        </button>
+      </div>
+
+      {/* New Folder dialog */}
+      {showNewFolder && (
+        <div className="mb-6 p-4 glass-panel rounded-xl border border-white/10">
+          <p className="text-white text-sm font-medium mb-3">New folder in <span className="text-teal-400">{stack[stack.length - 1].title}</span></p>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreateFolder(); if (e.key === "Escape") setShowNewFolder(false); }}
+              placeholder="Folder name"
+              className="flex-1 bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-teal-400/60"
+            />
+            <button
+              onClick={handleCreateFolder}
+              disabled={isPending}
+              className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            >
+              {isPending ? "Creating…" : "Create"}
+            </button>
+            <button
+              onClick={() => { setShowNewFolder(false); setNewFolderName(""); setFolderError(null); }}
+              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-400 text-sm transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          {folderError && <p className="text-red-400 text-xs mt-2">{folderError}</p>}
+        </div>
+      )}
 
       {isEmpty ? (
         <div className="border-2 border-dashed border-white/20 rounded-2xl p-12 text-center">
@@ -92,11 +158,7 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
           </div>
           <h3 className="text-white font-semibold mb-2">This folder is empty</h3>
           <p className="text-gray-400 text-sm">
-            Add textbooks or sub-folders via the{" "}
-            <Link href="/studio" className="text-teal-400 hover:underline">
-              Studio
-            </Link>
-            .
+            Create a sub-folder or upload a textbook to get started.
           </p>
         </div>
       ) : (
