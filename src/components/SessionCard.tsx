@@ -14,7 +14,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Progress } from '../../components/ui/progress';
@@ -25,32 +24,33 @@ interface SessionCardProps {
 }
 
 export function SessionCard({ session }: SessionCardProps) {
+  const href = `/reader?title=${encodeURIComponent(session.title)}${session.pdfUrl ? `&url=${encodeURIComponent(session.pdfUrl)}` : ""}`;
+
   return (
-    <Card className="glass-panel border-0 p-6 hover:scale-[1.02] transition-transform duration-200">
-      {/* Thumbnail */}
-      <div className="relative h-32 bg-black/20 rounded-xl mb-4 flex items-center justify-center">
-        <Image
-          src={session.thumbnail}
-          alt={session.title}
-          fill
-          className="rounded-xl object-cover"
-        />
-      </div>
+    <Link href={href}>
+      <Card className="glass-panel border-0 px-4 py-3 hover:scale-[1.01] transition-transform duration-200 cursor-pointer">
+      <div className="flex items-center gap-3">
+        {/* Book icon placeholder */}
+        <div className="h-10 w-10 shrink-0 rounded-lg bg-white/5 flex items-center justify-center text-lg">
+          📖
+        </div>
 
-      {/* Progress Bar */}
-      <div className="space-y-2 mb-4">
-        <Progress 
-          value={session.progress} 
-          className="h-1.5 bg-gray-700"
-          style={{
-            '--progress-background': 'bg-teal-500'
-          } as React.CSSProperties}
-        />
-      </div>
+        <div className="flex-1 min-w-0">
+          {/* Title */}
+          <h3 className="text-sm font-semibold text-white truncate">{session.title}</h3>
 
-      {/* Title */}
-      <h3 className="font-semibold text-white">{session.title}</h3>
+          {/* Progress Bar */}
+          <div className="mt-1.5 flex items-center gap-2">
+            <Progress
+              value={session.progress}
+              className="h-1 flex-1 bg-gray-700"
+            />
+            <span className="text-[10px] text-gray-500 shrink-0">{session.progress}%</span>
+          </div>
+        </div>
+      </div>
     </Card>
+    </Link>
   );
 }
 

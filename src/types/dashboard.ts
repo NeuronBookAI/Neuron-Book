@@ -42,6 +42,7 @@ export interface Session {
   title: string;
   thumbnail: string;
   progress: number;
+  pdfUrl?: string;
 }
 
 export interface SidebarItem {

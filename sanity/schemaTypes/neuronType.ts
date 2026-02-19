@@ -38,5 +38,12 @@ export const neuronType = defineType({
       initialValue: 0,
       validation: (rule) => rule.min(0).max(100).precision(2),
     }),
+    defineField({
+      name: "isDemo",
+      title: "Demo Content",
+      description: "If true, this neuron is visible to all users as example content.",
+      type: "boolean",
+      initialValue: false,
+    }),
   ],
 });

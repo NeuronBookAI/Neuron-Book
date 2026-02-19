@@ -29,8 +29,8 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
         </button>
       </div>
 
-      {/* Sessions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Sessions Grid — single column to fit the sidebar slot */}
+      <div className="flex flex-col gap-3">
         {sessions.map((session) => (
           <SessionCard key={session.id} session={session} />
         ))}
