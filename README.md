@@ -1,5 +1,6 @@
 # 🧠 Neuron Book
-https://neuron-book.base44.app
+Website: https://neuron-book.base44.app
+
 This is the full-stack application featuring a **Next.js** frontend and a **Flask** backend, designed to run concurrently during development.
 
 ---
