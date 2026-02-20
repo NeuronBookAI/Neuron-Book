@@ -8,6 +8,8 @@ import { UserButton } from "@clerk/nextjs";
 import { cn } from "../../lib/utils";
 import { SidebarItem } from "../../src/types/dashboard";
 import UploadModal from "./UploadModal";
+import Logo from "@/public/logo.png";
+import Image from "next/image";
 
 const IconMap = { Home, Plus, BookOpen, BookMarked, Network };
 
@@ -29,8 +31,8 @@ export function Sidebar({ items, className }: SidebarProps) {
         )}
       >
         {/* Logo/Brand area */}
-        <div className="w-12 h-12 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
-          <span className="text-white font-bold text-xl">N</span>
+        <div className="w-12 h-12  rounded-2xl flex items-center justify-center shadow-lg">
+          <Image src={Logo} alt="N" />
         </div>
 
         {/* Navigation Items */}
