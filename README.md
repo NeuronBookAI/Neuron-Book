@@ -1,6 +1,6 @@
 # 🧠 Neuron Book
-Website: [https://neuron-book-6198.d.kiloapps.io](https://neuron-book-6198.d.kiloapps.io)
-Demo video: [https://youtu.be/SNowMQ69PAc](https://youtu.be/SNowMQ69PAc)
+- Website: [https://neuron-book-6198.d.kiloapps.io](https://neuron-book-6198.d.kiloapps.io)
+- Demo video: [https://youtu.be/SNowMQ69PAc](https://youtu.be/SNowMQ69PAc)
 
 This is the full-stack application featuring a **Next.js** frontend and a **Flask** backend, designed to run concurrently during development.
 
