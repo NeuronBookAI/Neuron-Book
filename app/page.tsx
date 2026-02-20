@@ -13,8 +13,12 @@ import {
   Globe,
   ArrowRight,
   Upload,
+  Linkedin,
 } from "lucide-react";
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
+import Sneha from "@/public/sneha.jpeg";
+import Khas from "@/public/khas.jpeg";
+import Preston from "@/public/preston.png";
 
 export default function LandingPage() {
   return (
@@ -172,6 +176,129 @@ export default function LandingPage() {
             engine built to help you navigate information overload and move from
             mere knowing to true mastery.
           </p>
+        </div>
+      </section>
+
+      {/* Meet the Builders */}
+      <section className="relative max-w-7xl mx-auto px-6 py-32 border-t border-white/5 overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden>
+          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
+          <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]" />
+        </div>
+
+        {/* Heading */}
+        <div className="relative text-center mb-20">
+          <p className="text-teal-400 uppercase tracking-[0.35em] font-bold text-xs mb-5">
+            The Team
+          </p>
+          <h2 className="builders-heading text-5xl md:text-7xl font-black mb-6 leading-none tracking-tight">
+            Meet the Engineers
+          </h2>
+          <p className="text-gray-400 max-w-xl mx-auto text-lg leading-relaxed">
+            Five engineers. Two weeks. One mission — forged at the{" "}
+            <a
+              href="https://developerweek-2026-hackathon.devpost.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-teal-400 hover:text-teal-300 font-semibold transition-colors"
+            >
+              DeveloperWeek 2026 Hackathon
+            </a>
+            .
+          </p>
+        </div>
+
+        {/* Builder Cards */}
+        <div className="relative grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+          {[
+            {
+              name: "Matthew G.",
+              role: "Team Lead · Full-Stack AI Engineer",
+              href: "https://www.linkedin.com/in/mattg2765/",
+              avatar: "https://avatars.githubusercontent.com/u/131828386?v=4",
+              initials: "MG",
+            },
+            {
+              name: "Michael K.",
+              role: "M.S. AI · Computer Vision & Autonomous Systems",
+              href: "https://www.linkedin.com/in/michael-khuri/",
+              avatar: "https://avatars.githubusercontent.com/u/86020928?v=4",
+              initials: "MK",
+            },
+            {
+              name: "Sneha P.",
+              role: "ML Engineer · CS @ UTA",
+              href: "https://www.linkedin.com/in/snehaptl/",
+              avatar: Sneha,
+              initials: "SP",
+            },
+            {
+              name: "Khas T.",
+              role: "EECS · UC Berkeley",
+              href: "https://www.linkedin.com/in/khas-erdene-tsogtsaikhan/",
+              avatar: Khas,
+              initials: "KT",
+            },
+            {
+              name: "Preston S.",
+              role: "Software Engineer · Web Applications",
+              href: "https://www.linkedin.com/in/preston-jay-susanto-3a589534b/",
+              avatar: Preston,
+              initials: "PS",
+            },
+          ].map((person, i) => (
+            <a
+              key={person.name}
+              href={person.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="builder-card group flex flex-col items-center text-center p-6 bg-white/[0.03] border border-white/10 rounded-3xl hover:bg-white/[0.07] hover:border-teal-400/40 hover:shadow-[0_0_40px_rgba(94,234,212,0.12)] transition-all duration-300"
+              style={{ animationDelay: `${i * 0.12}s` }}
+            >
+              {/* Avatar with spinning gradient ring */}
+              <div className="relative w-20 h-20 mb-5">
+                <div
+                  className="builder-avatar-ring absolute inset-0 rounded-full"
+                  style={{
+                    background:
+                      "conic-gradient(from 0deg, #5eead4, #a78bfa, #5eead4)",
+                    padding: "2px",
+                  }}
+                >
+                  <div className="w-full h-full rounded-full bg-[#0a0f12]" />
+                </div>
+                <div className="absolute inset-[3px] rounded-full overflow-hidden">
+                  {person.avatar ? (
+                    <Image
+                      src={person.avatar}
+                      alt={person.name}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-teal-400/30 to-purple-500/30 flex items-center justify-center text-teal-300 font-bold text-xl">
+                      {person.initials}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p className="font-bold text-white text-sm mb-1 group-hover:text-teal-300 transition-colors">
+                {person.name}
+              </p>
+              <p className="text-gray-500 text-xs leading-snug mb-4">
+                {person.role}
+              </p>
+
+              {/* LinkedIn icon */}
+              <div className="mt-auto flex items-center gap-1.5 text-gray-600 group-hover:text-teal-400 transition-colors text-xs font-semibold">
+                <Linkedin size={14} />
+                <span>LinkedIn</span>
+              </div>
+            </a>
+          ))}
         </div>
       </section>
 
