@@ -17,43 +17,43 @@ interface DemoLink {
 }
 
 const NODES: DemoNode[] = [
-  { id: "visual-perception",   label: "Visual Perception",   mastery: 88 },
+  { id: "visual-perception", label: "Visual Perception", mastery: 88 },
   { id: "pattern-recognition", label: "Pattern Recognition", mastery: 74 },
-  { id: "working-memory",      label: "Working Memory",      mastery: 62 },
-  { id: "long-term-memory",    label: "Long-Term Memory",    mastery: 48 },
-  { id: "attention",           label: "Attention",           mastery: 91 },
-  { id: "cognitive-load",      label: "Cognitive Load",      mastery: 55 },
-  { id: "neural-plasticity",   label: "Neural Plasticity",   mastery: 80 },
-  { id: "synaptic-strength",   label: "Synaptic Strength",   mastery: 67 },
-  { id: "metacognition",       label: "Metacognition",       mastery: 72 },
-  { id: "spaced-repetition",   label: "Spaced Repetition",   mastery: 85 },
-  { id: "active-recall",       label: "Active Recall",       mastery: 78 },
-  { id: "chunking",            label: "Chunking",            mastery: 50 },
+  { id: "working-memory", label: "Working Memory", mastery: 62 },
+  { id: "long-term-memory", label: "Long-Term Memory", mastery: 48 },
+  { id: "attention", label: "Attention", mastery: 91 },
+  { id: "cognitive-load", label: "Cognitive Load", mastery: 55 },
+  { id: "neural-plasticity", label: "Neural Plasticity", mastery: 80 },
+  { id: "synaptic-strength", label: "Synaptic Strength", mastery: 67 },
+  { id: "metacognition", label: "Metacognition", mastery: 72 },
+  { id: "spaced-repetition", label: "Spaced Repetition", mastery: 85 },
+  { id: "active-recall", label: "Active Recall", mastery: 78 },
+  { id: "chunking", label: "Chunking", mastery: 50 },
 ];
 
 const LINKS: DemoLink[] = [
-  { source: "visual-perception",   target: "pattern-recognition" },
-  { source: "visual-perception",   target: "attention" },
+  { source: "visual-perception", target: "pattern-recognition" },
+  { source: "visual-perception", target: "attention" },
   { source: "pattern-recognition", target: "working-memory" },
   { source: "pattern-recognition", target: "neural-plasticity" },
-  { source: "working-memory",      target: "long-term-memory" },
-  { source: "working-memory",      target: "cognitive-load" },
-  { source: "attention",           target: "cognitive-load" },
-  { source: "attention",           target: "metacognition" },
-  { source: "long-term-memory",    target: "synaptic-strength" },
-  { source: "long-term-memory",    target: "spaced-repetition" },
-  { source: "metacognition",       target: "active-recall" },
-  { source: "metacognition",       target: "spaced-repetition" },
-  { source: "spaced-repetition",   target: "active-recall" },
-  { source: "active-recall",       target: "chunking" },
-  { source: "synaptic-strength",   target: "neural-plasticity" },
-  { source: "chunking",            target: "working-memory" },
+  { source: "working-memory", target: "long-term-memory" },
+  { source: "working-memory", target: "cognitive-load" },
+  { source: "attention", target: "cognitive-load" },
+  { source: "attention", target: "metacognition" },
+  { source: "long-term-memory", target: "synaptic-strength" },
+  { source: "long-term-memory", target: "spaced-repetition" },
+  { source: "metacognition", target: "active-recall" },
+  { source: "metacognition", target: "spaced-repetition" },
+  { source: "spaced-repetition", target: "active-recall" },
+  { source: "active-recall", target: "chunking" },
+  { source: "synaptic-strength", target: "neural-plasticity" },
+  { source: "chunking", target: "working-memory" },
 ];
 
 function nodeColor(mastery: number): string {
   if (mastery >= 75) return "#5eead4"; // teal — strong
   if (mastery >= 55) return "#a78bfa"; // purple — growing
-  return "#4b5563";                     // gray — weak
+  return "#4b5563"; // gray — weak
 }
 
 function nodeGlow(mastery: number): string {
@@ -71,7 +71,9 @@ export default function NeuralTraceDemoGraph() {
 
   // Lazy-load the canvas library only on the client
   useEffect(() => {
-    import("react-force-graph-2d").then((mod) => setForceGraph(() => mod.default));
+    import("react-force-graph-2d").then((mod) =>
+      setForceGraph(() => mod.default),
+    );
   }, []);
 
   // Measure container width
@@ -98,6 +100,8 @@ export default function NeuralTraceDemoGraph() {
           /* links */
           linkColor={() => "rgba(94,234,212,0.18)"}
           linkWidth={1.2}
+          minZoom={0.6}
+          maxZoom={4}
           linkDirectionalParticles={2}
           linkDirectionalParticleWidth={1.5}
           linkDirectionalParticleColor={() => "#5eead4"}
@@ -105,7 +109,11 @@ export default function NeuralTraceDemoGraph() {
           /* nodes */
           nodeRelSize={4}
           nodeLabel={(node: DemoNode) => node.label}
-          nodeCanvasObject={(node: DemoNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
+          nodeCanvasObject={(
+            node: DemoNode,
+            ctx: CanvasRenderingContext2D,
+            globalScale: number,
+          ) => {
             const r = 5;
             const x = node.x ?? 0;
             const y = node.y ?? 0;
@@ -140,7 +148,10 @@ export default function NeuralTraceDemoGraph() {
           d3VelocityDecay={0.3}
         />
       ) : (
-        <div className="flex items-center justify-center" style={{ height: 340 }}>
+        <div
+          className="flex items-center justify-center"
+          style={{ height: 340 }}
+        >
           <div className="w-8 h-8 rounded-full border-2 border-teal-400 border-t-transparent animate-spin" />
         </div>
       )}

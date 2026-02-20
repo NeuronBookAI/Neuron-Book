@@ -61,10 +61,17 @@ interface Props {
 }
 
 function masteryColor(mastery: number): string {
-  if (mastery >= 80) return "#2dd4bf";
-  if (mastery >= 50) return "#a78bfa";
-  if (mastery >= 25) return "#fb923c";
-  return "#6b7280";
+  if (mastery >= 75) return "#5eead4"; // teal
+  if (mastery >= 50) return "#a78bfa"; // purple
+  if (mastery >= 25) return "#fb923c"; // orange
+  return "#6b7280";                    // gray
+}
+
+function masteryGlow(mastery: number): string {
+  if (mastery >= 75) return "rgba(94,234,212,0.4)";
+  if (mastery >= 50) return "rgba(167,139,250,0.4)";
+  if (mastery >= 25) return "rgba(251,146,60,0.35)";
+  return "rgba(107,114,128,0.25)";
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -167,34 +174,42 @@ export default function NeuralTrace({ neurons }: Props) {  const router = useRou
     setSelected((node as GraphNode).data);
   }, []);
 
-  // Custom canvas node rendering
-  const paintNode = useCallback((node: object, ctx: CanvasRenderingContext2D) => {
+  // Custom canvas node rendering — radial glow + label
+  const paintNode = useCallback((node: object, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const n = node as GraphNode & { x: number; y: number };
-    const radius = Math.max(5, n.val * 1.8);
+    const x = n.x;
+    const y = n.y;
+    // Skip if simulation hasn't placed the node yet
+    if (!isFinite(x) || !isFinite(y)) return;
+
+    const r = Math.max(5, n.val * 1.8);
     const color = masteryColor(n.mastery);
 
-    // Glow
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 12;
-
+    // Radial glow halo
+    const grd = ctx.createRadialGradient(x, y, 0, x, y, r * 3.5);
+    grd.addColorStop(0, masteryGlow(n.mastery));
+    grd.addColorStop(1, "transparent");
+    ctx.fillStyle = grd;
     ctx.beginPath();
-    ctx.arc(n.x, n.y, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = color + "33"; // translucent fill
+    ctx.arc(x, y, r * 3.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
 
-    // Label — fixed small size, independent of node radius
-    ctx.font = `7px Inter, sans-serif`;
-    ctx.fillStyle = "rgba(209,213,219,0.75)";
+    // Solid node circle
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Label — scales with zoom, capped so it stays readable
+    const fontSize = Math.max(8 / globalScale, 3.5);
+    ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.78)";
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.textBaseline = "top";
     ctx.fillText(
       n.label.length > 18 ? n.label.slice(0, 16) + "…" : n.label,
-      n.x,
-      n.y + radius + 7
+      x,
+      y + r + 2 / globalScale
     );
   }, []);
 
@@ -210,8 +225,8 @@ export default function NeuralTrace({ neurons }: Props) {  const router = useRou
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-gray-400">
           {[
-            { color: "#2dd4bf", label: "≥80%" },
-            { color: "#a78bfa", label: "50–79%" },
+            { color: "#5eead4", label: "≥75%" },
+            { color: "#a78bfa", label: "50–74%" },
             { color: "#fb923c", label: "25–49%" },
             { color: "#6b7280", label: "<25%" },
           ].map(({ color, label }) => (
@@ -242,8 +257,12 @@ export default function NeuralTrace({ neurons }: Props) {  const router = useRou
             graphData={graphData}
             nodeCanvasObject={paintNode}
             nodeCanvasObjectMode={() => "replace"}
-            linkColor={() => "rgba(255,255,255,0.12)"}
+            linkColor={() => "rgba(94,234,212,0.18)"}
             linkWidth={1.2}
+            linkDirectionalParticles={2}
+            linkDirectionalParticleWidth={1.5}
+            linkDirectionalParticleColor={() => "#5eead4"}
+            linkDirectionalParticleSpeed={0.004}
             onNodeClick={handleNodeClick}
             backgroundColor="transparent"
             nodeLabel={(node) => `${(node as GraphNode).label} — ${(node as GraphNode).mastery}% mastery`}
@@ -252,7 +271,6 @@ export default function NeuralTrace({ neurons }: Props) {  const router = useRou
             d3VelocityDecay={0.3}
             minZoom={0.6}
             maxZoom={4}
-            enableNodeDrag={false}
           />
         </div>
 
