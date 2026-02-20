@@ -6,6 +6,9 @@ const PRODUCTION_API_BACKEND =
   "https://neuron-book-production.up.railway.app";
 
 const nextConfig = {
+  experimental: {
+    serverActions: { bodySizeLimit: "50mb" },
+  },
   images: {
     remotePatterns: [
       {
