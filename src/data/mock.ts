@@ -74,5 +74,6 @@ export const mockSessions: Session[] = [
 export const mockSidebarItems: SidebarItem[] = [
   { id: '1', label: 'Dashboard', icon: 'Home', route: '/dashboard', isActive: true },
   { id: '3', label: 'Library', icon: 'BookOpen', route: '/library' },
+  { id: '4', label: 'Add Textbook', icon: 'Plus', route: '#', action: 'upload' },
   { id: '5', label: 'Network', icon: 'Network', route: '/network' },
 ];
