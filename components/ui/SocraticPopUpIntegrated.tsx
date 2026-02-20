@@ -100,7 +100,7 @@ export default function SocraticPopUpIntegrated({
       setResult(null);
 
       try {
-        const res = await fetch("/api/question/enhanced", {
+        const res = await fetch("/api/question/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -181,7 +181,9 @@ export default function SocraticPopUpIntegrated({
 
       if (!saveRes.ok) {
         const saveData = await saveRes.json();
-        throw new Error(saveData.error || "Could not save your answer. Please try again.");
+        throw new Error(
+          saveData.error || "Could not save your answer. Please try again.",
+        );
       }
 
       // Then evaluate
@@ -205,7 +207,11 @@ export default function SocraticPopUpIntegrated({
       }
 
       // Create a neuron for this answer in parallel with eval
-      let neuronData: { neuronId?: string; neuronTitle?: string; neuronMastery?: number } = {};
+      let neuronData: {
+        neuronId?: string;
+        neuronTitle?: string;
+        neuronMastery?: number;
+      } = {};
       try {
         const neuronRes = await fetch("/api/answer/create-neuron", {
           method: "POST",
@@ -218,14 +224,19 @@ export default function SocraticPopUpIntegrated({
         });
         if (neuronRes.ok) {
           const n = await neuronRes.json();
-          neuronData = { neuronId: n.neuronId, neuronTitle: n.title, neuronMastery: n.masteryLevel };
+          neuronData = {
+            neuronId: n.neuronId,
+            neuronTitle: n.title,
+            neuronMastery: n.masteryLevel,
+          };
         }
       } catch {
         // Neuron creation is non-fatal
       }
 
       setResult({
-        evaluation: submitData.evaluation ?? "Answer saved to your Neural Trace.",
+        evaluation:
+          submitData.evaluation ?? "Answer saved to your Neural Trace.",
         concepts: submitData.concepts ?? [],
         enrichment: submitData.enrichment ?? [],
         ...neuronData,
@@ -325,7 +336,9 @@ export default function SocraticPopUpIntegrated({
               <p className="text-xs font-semibold text-purple-300 mb-0.5">
                 New Neuron Created
               </p>
-              <p className="text-xs text-gray-400 truncate">{result.neuronTitle}</p>
+              <p className="text-xs text-gray-400 truncate">
+                {result.neuronTitle}
+              </p>
               {result.neuronMastery != null && (
                 <div className="mt-1.5 flex items-center gap-2">
                   <div className="flex-1 h-1 rounded-full bg-white/10">
@@ -340,7 +353,10 @@ export default function SocraticPopUpIntegrated({
                 </div>
               )}
             </div>
-            <ArrowRight size={13} className="shrink-0 text-gray-500 group-hover:text-purple-300 transition-colors" />
+            <ArrowRight
+              size={13}
+              className="shrink-0 text-gray-500 group-hover:text-purple-300 transition-colors"
+            />
           </a>
         )}
 
