@@ -26,9 +26,10 @@ export const USER_BY_CLERK_ID_QUERY = defineQuery(`
 // ── Textbooks ─────────────────────────────────────────────────────────────────
 
 export const ALL_TEXTBOOKS_QUERY = defineQuery(`
-  *[_type == "textbook" && user->userId == $clerkId] | order(_createdAt desc) {
+  *[_type == "textbook" && (user->userId == $clerkId || isDemo == true)] | order(isDemo asc, _createdAt desc) {
     _id,
     title,
+    isDemo,
     file { asset->{ url } },
     folder[]->{ _id, title },
     neurons[]->{ _id, title, masteryLevel },
@@ -37,9 +38,10 @@ export const ALL_TEXTBOOKS_QUERY = defineQuery(`
 `);
 
 export const RECENT_TEXTBOOKS_QUERY = defineQuery(`
-  *[_type == "textbook" && user->userId == $clerkId] | order(_createdAt desc)[0..4] {
+  *[_type == "textbook" && (user->userId == $clerkId || isDemo == true)] | order(isDemo asc, _createdAt desc)[0..4] {
     _id,
     title,
+    isDemo,
     file { asset->{ url } },
     folder[]->{ _id, title },
     neurons[]->{ _id }
@@ -69,10 +71,11 @@ export const ALL_NEURONS_QUERY = defineQuery(`
 `);
 
 export const NEURONS_WITH_MASTERY_QUERY = defineQuery(`
-  *[_type == "neuron" && user->userId == $clerkId] | order(title asc) {
+  *[_type == "neuron" && (user->userId == $clerkId || isDemo == true)] | order(isDemo asc, title asc) {
     _id,
     title,
     masteryLevel,
+    isDemo,
     synapses[]->{ _id, title, masteryLevel },
     "mastery": *[_type == "mastery" && references(^._id)][0] {
       _id,

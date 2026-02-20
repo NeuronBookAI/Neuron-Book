@@ -39,6 +39,7 @@ export interface SanityNeuron {
 export interface SanityTextbook {
   _id: string;
   title: string;
+  isDemo?: boolean;
   file?: { asset?: { url: string } };
   folder?: { _id: string; title: string }[];
   neurons?: { _id: string; title: string; masteryLevel?: number }[];

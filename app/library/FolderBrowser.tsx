@@ -2,18 +2,13 @@
 
 /**
  * FolderBrowser — recursive folder navigation for the Library page.
- *
- * - Root view: top-level folders + textbooks not assigned to any folder.
- * - Clicking a folder drills into it, showing child folders + its textbooks.
- * - Breadcrumbs let the user navigate back up.
- * - Clicking a textbook opens it in the Reader with the real Sanity CDN URL.
  */
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Upload } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import type { SanityFolder, SanityTextbook } from "@/src/types/sanity";
-import { createFolder } from "../actions/folder";
+import { createFolder, deleteTextbook, deleteFolder } from "../actions/folder";
 import UploadModal from "@/src/components/UploadModal";
 
 interface FolderBrowserProps {
@@ -26,7 +21,7 @@ interface Breadcrumb {
   title: string;
 }
 
-export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
+export function FolderBrowser({ folders: initialFolders, rootTextbooks: initialRootTextbooks }: FolderBrowserProps) {
   const [stack, setStack] = useState<Breadcrumb[]>([
     { id: null, title: "Library" },
   ]);
@@ -39,6 +34,10 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
   const [isFolderPending, startFolderTransition] = useTransition();
   const folderInputRef = useRef<HTMLInputElement>(null);
 
+  // Delete confirmation state: id of item being confirmed
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
+
   useEffect(() => {
     if (showNewFolder) folderInputRef.current?.focus();
   }, [showNewFolder]);
@@ -47,7 +46,7 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
   const currentTitle = stack[stack.length - 1].title;
 
   // Folders whose parent matches the current view
-  const visibleFolders = folders.filter(
+  const visibleFolders = initialFolders.filter(
     (f) => (f.parentFolder?._id ?? null) === currentId,
   );
 
@@ -57,15 +56,16 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
     title: string;
     fileUrl?: string;
     neuronCount: number;
+    isDemo?: boolean;
   }[] =
     currentId === null
-      ? rootTextbooks.map((b) => ({
+      ? initialRootTextbooks.map((b) => ({
           _id: b._id,
           title: b.title,
           fileUrl: b.file?.asset?.url,
           neuronCount: b.neurons?.length ?? 0,
         }))
-      : (folders
+      : (initialFolders
           .find((f) => f._id === currentId)
           ?.documents?.map((d) => ({
             _id: d._id,
@@ -100,6 +100,25 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
     });
   }
 
+  function handleDeleteTextbook(id: string) {
+    startDeleteTransition(async () => {
+      await deleteTextbook(id);
+      setConfirmDeleteId(null);
+      // Navigate up if we deleted the folder we're in (shouldn't happen for textbooks)
+    });
+  }
+
+  function handleDeleteFolder(id: string) {
+    startDeleteTransition(async () => {
+      await deleteFolder(id);
+      setConfirmDeleteId(null);
+      // If we deleted the folder we're currently inside, pop back
+      if (stack[stack.length - 1].id === id) {
+        setStack((prev) => prev.slice(0, -1));
+      }
+    });
+  }
+
   const isEmpty = visibleFolders.length === 0 && visibleTextbooks.length === 0;
 
   /* Reusable empty/compact upload CTA */
@@ -128,6 +147,26 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
         </div>
       )}
     </button>
+  );
+
+  /* Inline delete confirm bar */
+  const deleteConfirmBar = (id: string, label: string, onConfirm: () => void) => (
+    <div className="absolute inset-0 z-10 rounded-xl bg-red-950/90 border border-red-500/40 flex items-center justify-center gap-2 px-3">
+      <span className="text-xs text-red-200 truncate flex-1">Delete &quot;{label}&quot;?</span>
+      <button
+        disabled={isDeleting}
+        onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+        className="px-2.5 py-1 rounded bg-red-500 hover:bg-red-400 text-white text-xs font-medium disabled:opacity-50 shrink-0"
+      >
+        {isDeleting ? "…" : "Delete"}
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+        className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-gray-300 text-xs shrink-0"
+      >
+        Cancel
+      </button>
+    </div>
   );
 
   return (
@@ -237,24 +276,41 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {visibleFolders.map((folder) => {
                   const childCount =
-                    folders.filter((f) => f.parentFolder?._id === folder._id)
+                    initialFolders.filter((f) => f.parentFolder?._id === folder._id)
                       .length + (folder.documents?.length ?? 0);
+                  const isConfirming = confirmDeleteId === folder._id;
                   return (
-                    <button
-                      key={folder._id}
-                      onClick={() => openFolder(folder)}
-                      className="glass-panel rounded-xl p-4 border border-white/10 hover:border-teal-400/40 transition-all text-left group"
-                    >
-                      <div className="w-full h-20 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-lg mb-3 flex items-center justify-center group-hover:from-yellow-500/20 group-hover:to-orange-500/20 transition-colors">
-                        <span className="text-3xl">📁</span>
-                      </div>
-                      <h4 className="text-white text-sm font-medium truncate">
-                        {folder.title}
-                      </h4>
-                      <p className="text-gray-500 text-xs mt-1">
-                        {childCount} item{childCount !== 1 ? "s" : ""}
-                      </p>
-                    </button>
+                    <div key={folder._id} className="relative group">
+                      {isConfirming && deleteConfirmBar(
+                        folder._id,
+                        folder.title,
+                        () => handleDeleteFolder(folder._id)
+                      )}
+                      <button
+                        onClick={() => openFolder(folder)}
+                        className="glass-panel rounded-xl p-4 border border-white/10 hover:border-teal-400/40 transition-all text-left w-full"
+                      >
+                        <div className="w-full h-20 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-lg mb-3 flex items-center justify-center group-hover:from-yellow-500/20 group-hover:to-orange-500/20 transition-colors">
+                          <span className="text-3xl">📁</span>
+                        </div>
+                        <h4 className="text-white text-sm font-medium truncate">
+                          {folder.title}
+                        </h4>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {childCount} item{childCount !== 1 ? "s" : ""}
+                        </p>
+                      </button>
+                      {/* Delete button — visible on hover */}
+                      {!isConfirming && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(folder._id); }}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-all"
+                          title="Delete folder"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -271,25 +327,42 @@ export function FolderBrowser({ folders, rootTextbooks }: FolderBrowserProps) {
                   const href = book.fileUrl
                     ? `/reader?url=${encodeURIComponent(book.fileUrl)}&title=${encodeURIComponent(book.title)}`
                     : "/reader";
+                  const isConfirming = confirmDeleteId === book._id;
                   return (
-                    <Link
-                      key={book._id}
-                      href={href}
-                      className="glass-panel rounded-xl p-4 border border-white/10 hover:border-teal-400/40 transition-all group block"
-                    >
-                      <div className="w-full h-20 bg-gradient-to-br from-teal-500/20 to-purple-500/20 rounded-lg mb-3 flex items-center justify-center group-hover:from-teal-500/30 group-hover:to-purple-500/30 transition-colors">
-                        <span className="text-3xl">📖</span>
-                      </div>
-                      <h4 className="text-white text-sm font-medium truncate">
-                        {book.title}
-                      </h4>
-                      <p className="text-gray-500 text-xs mt-1">
-                        {book.neuronCount > 0
-                          ? `${book.neuronCount} neuron${book.neuronCount !== 1 ? "s" : ""} · `
-                          : ""}
-                        {book.fileUrl ? "Open in Reader" : "No PDF attached"}
-                      </p>
-                    </Link>
+                    <div key={book._id} className="relative group">
+                      {isConfirming && deleteConfirmBar(
+                        book._id,
+                        book.title,
+                        () => handleDeleteTextbook(book._id)
+                      )}
+                      <Link
+                        href={href}
+                        className="glass-panel rounded-xl p-4 border border-white/10 hover:border-teal-400/40 transition-all block"
+                      >
+                        <div className="w-full h-20 bg-gradient-to-br from-teal-500/20 to-purple-500/20 rounded-lg mb-3 flex items-center justify-center group-hover:from-teal-500/30 group-hover:to-purple-500/30 transition-colors">
+                          <span className="text-3xl">📖</span>
+                        </div>
+                        <h4 className="text-white text-sm font-medium truncate">
+                          {book.title}
+                        </h4>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {book.neuronCount > 0
+                            ? `${book.neuronCount} neuron${book.neuronCount !== 1 ? "s" : ""} · `
+                            : ""}
+                          {book.fileUrl ? "Open in Reader" : "No PDF attached"}
+                        </p>
+                      </Link>
+                      {/* Delete button — only for non-demo books */}
+                      {!isConfirming && !book.isDemo && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(book._id); }}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-all"
+                          title="Delete textbook"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
