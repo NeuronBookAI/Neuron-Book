@@ -62,7 +62,7 @@ export interface SanityMastery {
 export interface SanityDashboardStats {
   neuronCount: number;
   textbookCount: number;
-  masteryCount: number;
+  avgMastery: number | null;
 }
 
 export interface SanityNeuronStats {

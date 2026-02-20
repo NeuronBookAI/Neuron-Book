@@ -91,9 +91,9 @@ export const NEURONS_WITH_MASTERY_QUERY = defineQuery(`
 
 export const NEURON_STATS_QUERY = defineQuery(`
   {
-    "totalNeurons": count(*[_type == "neuron" && user->userId == $clerkId]),
-    "totalSynapses": count(*[_type == "neuron" && user->userId == $clerkId && defined(synapses)].synapses[]),
-    "avgMastery": math::avg(*[_type == "neuron" && user->userId == $clerkId].masteryLevel)
+    "totalNeurons": count(*[_type == "neuron" && (user->userId == $clerkId || isDemo == true)]),
+    "totalSynapses": count(*[_type == "neuron" && (user->userId == $clerkId || isDemo == true) && defined(synapses)].synapses[]),
+    "avgMastery": math::avg(*[_type == "neuron" && (user->userId == $clerkId || isDemo == true)].masteryLevel)
   }
 `);
 
@@ -118,8 +118,8 @@ export const ALL_MASTERY_QUERY = defineQuery(`
 
 export const DASHBOARD_STATS_QUERY = defineQuery(`
   {
-    "neuronCount": count(*[_type == "neuron" && user->userId == $clerkId]),
-    "textbookCount": count(*[_type == "textbook" && user->userId == $clerkId]),
-    "masteryCount": count(*[_type == "mastery" && user->userId == $clerkId])
+    "neuronCount": count(*[_type == "neuron" && (user->userId == $clerkId || isDemo == true)]),
+    "textbookCount": count(*[_type == "textbook" && (user->userId == $clerkId || isDemo == true)]),
+    "avgMastery": math::avg(*[_type == "neuron" && (user->userId == $clerkId || isDemo == true)].masteryLevel)
   }
 `);

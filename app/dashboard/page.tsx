@@ -44,9 +44,9 @@ export default async function Dashboard() {
       icon: "BookOpen",
     },
     {
-      label: "Mastery Sessions",
-      value: String(stats?.masteryCount ?? 0),
-      icon: "Trophy",
+      label: "Avg. Mastery",
+      value: stats?.avgMastery != null ? `${Math.round(stats.avgMastery)}%` : "—",
+      icon: "Zap",
     },
   ];
 

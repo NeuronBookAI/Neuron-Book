@@ -1,16 +1,16 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { Sidebar } from '../../src/components/Sidebar';
-import { mockSidebarItems } from '../../src/data/mock';
-import { writeClient } from '@/sanity/lib/write-client';
-import { ALL_TEXTBOOKS_QUERY, ALL_FOLDERS_QUERY } from '@/sanity/lib/queries';
-import type { SanityTextbook, SanityFolder } from '@/src/types/sanity';
-import { FolderBrowser } from './FolderBrowser';
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Sidebar } from "../../src/components/Sidebar";
+import { mockSidebarItems } from "../../src/data/mock";
+import { writeClient } from "@/sanity/lib/write-client";
+import { ALL_TEXTBOOKS_QUERY, ALL_FOLDERS_QUERY } from "@/sanity/lib/queries";
+import type { SanityTextbook, SanityFolder } from "@/src/types/sanity";
+import { FolderBrowser } from "./FolderBrowser";
 
 export default async function Library() {
   const { userId } = await auth();
-  if (!userId) redirect('/');
+  if (!userId) redirect("/");
 
   const params = { clerkId: userId };
   const [textbooks, folders] = await Promise.all([
@@ -22,9 +22,7 @@ export default async function Library() {
   const allFolders = (folders ?? []) as SanityFolder[];
 
   // Textbooks not assigned to any folder (shown at root level)
-  const rootTextbooks = books.filter(
-    (b) => !b.folder || b.folder.length === 0
-  );
+  const rootTextbooks = books.filter((b) => !b.folder || b.folder.length === 0);
 
   return (
     <div className="min-h-screen glass-bg">
@@ -36,8 +34,7 @@ export default async function Library() {
             <div>
               <h1 className="text-3xl font-bold text-white">Content Library</h1>
               <p className="text-gray-400 mt-1 text-sm">
-                {books.length} textbook{books.length !== 1 ? 's' : ''} · manage via{' '}
-                <Link href="/studio" className="text-teal-400 hover:underline">Studio</Link>
+                {books.length} textbook{books.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -48,5 +45,3 @@ export default async function Library() {
     </div>
   );
 }
-
-
