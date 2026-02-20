@@ -1,4 +1,10 @@
 /** @type {import('next').NextConfig} */
+
+// PRODUCTION: point /api to Railway backend
+const PRODUCTION_API_BACKEND =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://neuron-book-production.up.railway.app";
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -15,7 +21,7 @@ const nextConfig = {
         destination:
           process.env.NODE_ENV === "development"
             ? "http://127.0.0.1:5328/api/:path*"
-            : "/api/",
+            : `${PRODUCTION_API_BACKEND}/api/:path*`,
       },
     ];
   },
