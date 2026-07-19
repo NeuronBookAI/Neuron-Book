@@ -24,6 +24,9 @@ export async function uploadTextbook(formData: FormData): Promise<UploadTextbook
 
     if (!file) return { success: false, error: "No file provided" };
     if (!title) return { success: false, error: "Title is required" };
+    if (file.type !== "application/pdf") {
+      return { success: false, error: "Only PDF files are supported." };
+    }
 
     // Ensure Sanity user doc exists
     const clerkUser = await currentUser();

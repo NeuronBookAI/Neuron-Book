@@ -84,7 +84,8 @@ export default function UploadModal({ onClose, folderId, folderName }: Props) {
         {stage === "done" ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <CheckCircle size={40} className="text-teal-400" />
-            <p className="text-white font-medium">Uploaded! Opening reader…</p>
+            <p className="text-white font-medium">Saved to your library. Opening reader…</p>
+            <p className="text-gray-400 text-xs">PDF is stored in Sanity and will appear in Library.</p>
           </div>
         ) : (
           <>
@@ -119,7 +120,7 @@ export default function UploadModal({ onClose, folderId, folderName }: Props) {
                 <>
                   <Upload size={32} className="text-gray-500" />
                   <p className="text-gray-300 text-sm font-medium">Drop a PDF here</p>
-                  <p className="text-gray-500 text-xs">or click to browse</p>
+                  <p className="text-gray-500 text-xs">Uploads to Sanity and open in reader</p>
                 </>
               )}
             </div>
